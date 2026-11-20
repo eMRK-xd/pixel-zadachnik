@@ -1,0 +1,35 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--panel:#06080c;--line:#24344a;--ink:#e8dfc8;--dim:#8b9bb0;--gold:#d4a640;--gold-d:#6e4f1c;--px:4px;font-family:"Pixelify Sans",monospace}
+body{margin:0;background:#000;color:var(--ink);padding:18px;-webkit-font-smoothing:none}
+.px{position:relative;background:var(--panel);box-shadow:0 calc(-1*var(--px)) 0 0 var(--c,var(--line)),0 var(--px) 0 0 var(--c,var(--line)),calc(-1*var(--px)) 0 0 0 var(--c,var(--line)),var(--px) 0 0 0 var(--c,var(--line)),inset 0 calc(-1*var(--px)) 0 0 rgba(0,0,0,.35),inset 0 var(--px) 0 0 rgba(255,255,255,.06)}
+.btn{--c:var(--gold-d);background:#0b1019;color:#e7c56a;border:0;cursor:pointer;margin:4px}
+.btn.on{background:var(--gold);color:#1a0f05}
+.ico{width:30px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:15px;line-height:1}
+.top{display:flex;align-items:center;gap:6px;width:356px;padding:10px 12px;background:#000;border-left:4px solid #3b2766;margin-bottom:6px}
+.pair{display:flex;gap:16px}
+.logo{font-weight:700;font-size:16px;color:#e7c56a;letter-spacing:1px}.date{color:var(--dim);font-size:13px;margin-left:auto}
+h3{font-size:14px;color:var(--dim);margin:14px 0 4px;font-weight:400}
+.old .btn{padding:4px 9px;font-size:15px}
+svg{image-rendering:pixelated;shape-rendering:crispEdges}
+</style></head><body>
+<h3>сейчас</h3>
+<div class="top old"><span class="logo">ЗАДАЧНИК</span><span class="date">19.11.2026</span><button class="btn px" style="padding:6px 12px">⚙</button><button class="btn px">⊤</button><button class="btn px">✕</button></div>
+<div id="v"></div>
+<script>
+// 10×10, X = colour, o = highlight
+const P={
+  A:["...XXXX...","..XoXXXX..","..XXXXXX..","...XXXX...","...XXXX...","..XXXXXX..",".XXXXXXXX.","....XX....","....XX....","....X....."],
+  B:["......XX..",".....XoXX.","....XoXXXX","...XXXXXX.",".X.XXXXX..","..XXXXX...","...XXX....","..X.X.....",".X........","X........."],
+  C:[".XXX......","XoXXX.....","XXXXX.....","XXXXX.....",".XXXX.....","....X.....",".....X....","......X...",".......X..","........X."],
+  D:{off:["......XX..",".....XoXX.","....XoXXXX","...XXXXXX.",".X.XXXXX..","..XXXXX...","...XXX....","..X.X.....",".X........","X........."],
+     on:["...XXXX...","..XoXXXX..","..XXXXXX..","...XXXX...","...XXXX...","..XXXXXX..",".XXXXXXXX.","....XX....","....XX....","XXXXXXXXXX"]}};
+const N={A:"A · кнопка сверху",B:"B · кнопка наискось",C:"C · булавка",D:"D · лежит наискось → воткнута (с поверхностью)"};
+const GEAR=["...XX...",".X.XX.X.","..XXXX..","XXX..XXX","XXX..XXX","..XXXX..",".X.XX.X.","...XX..."];
+const X=["X......X",".X....X.","..X..X..","...XX...","...XX...","..X..X..",".X....X.","X......X"];
+const svg=(m,c,h)=>{const n=m.length;return `<svg width="${n*2}" height="${n*2}" viewBox="0 0 ${n} ${n}">${m.map((r,y)=>[...r].map((ch,x)=>ch==="X"||ch==="o"?`<rect x="${x}" y="${y}" width="1" height="1" fill="${ch==="o"?h:c}"/>`:"").join("")).join("")}</svg>`};
+const row=(pin,on)=>`<div class="top"><span class="logo">ЗАДАЧНИК</span><span class="date">19.11.2026</span><button class="btn px ico">${svg(GEAR,"#e7c56a")}</button><button class="btn px ico ${on?"on":""}">${svg(pin,on?"#1a0f05":"#e7c56a",on?"#8a6a2a":"#fff4cf")}</button><button class="btn px ico">${svg(X,"#e7c56a")}</button></div>`;
+document.getElementById("v").innerHTML=Object.keys(P).map(k=>{const p=P[k],off=p.off||p,on=p.on||p;
+  return `<h3>${N[k]} — выключено / включено</h3><div class="pair">${row(off,false)}${row(on,true)}</div>`}).join("");
+</script></body></html>

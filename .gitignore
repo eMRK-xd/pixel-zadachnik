@@ -1,0 +1,9 @@
+node_modules/
+.claude/
+icon-loop.ico
+*.log
+src-tauri/target/
+src-tauri/gen/
+mcp/node_modules/
+web/_*
+icon-variants.png

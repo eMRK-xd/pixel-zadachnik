@@ -1,0 +1,28 @@
+[package]
+name = "zadachnik"
+version = "0.1.0"
+description = "Пиксельный задачник — полоска у правого края экрана"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-opener = "2"
+serde_json = "1"
+ureq = { version = "2", features = ["json"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = ["Media_Control", "Foundation", "Storage_Streams"] }
+
+# small, fast release binary
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

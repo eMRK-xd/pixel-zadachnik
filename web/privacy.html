@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Пиксельный задачник — конфиденциальность</title>
+<style>
+  body{margin:0;background:#000;color:#e8dfc8;font:16px/1.55 ui-monospace,Consolas,monospace}
+  main{max-width:720px;margin:0 auto;padding:40px 22px 60px}
+  h1{color:#e7c56a;font-size:24px;margin:0 0 6px}
+  h2{color:#e7c56a;font-size:17px;margin:28px 0 6px}
+  small,.dim{color:#8b9bb0}
+  a{color:#6fc3d9}
+  ul{padding-left:20px}
+</style>
+</head>
+<body>
+<main>
+<h1>Пиксельный задачник</h1>
+<p class="dim">Политика конфиденциальности · Privacy policy · обновлено 18.11.2026</p>
+
+<p>Пиксельный задачник — личный трекер задач с открытым кодом (<a href="https://github.com/eMRK-xd/pixel-zadachnik">github.com/eMRK-xd/pixel-zadachnik</a>). У приложения нет своего сервера: разработчик не получает и не хранит ничьи данные.</p>
+
+<h2>Где хранятся данные</h2>
+<ul>
+  <li>Задачи, заметки и настройки хранятся на устройстве пользователя (в памяти приложения).</li>
+  <li>Если пользователь включает синхронизацию между устройствами, данные хранятся в приватном GitHub Gist <b>в его собственном аккаунте GitHub</b>, доступ — по его личному токену, который остаётся только на его устройствах.</li>
+</ul>
+
+<h2>Google Календарь</h2>
+<ul>
+  <li>Приложение запрашивает доступ <code>calendar.events</code>, только если пользователь сам подключает свой Google Календарь.</li>
+  <li>Доступ используется, чтобы создавать, обновлять и удалять события для задач с дедлайнами и показывать события пользователя внутри приложения.</li>
+  <li>Токены доступа хранятся только на компьютере пользователя и никуда не передаются, кроме серверов Google.</li>
+  <li>Данные Google не продаются, не передаются третьим лицам и не используются для рекламы или обучения моделей.</li>
+  <li>Отключить доступ можно в приложении (кнопка ✕ во вкладке «Календарь») или на странице <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+</ul>
+
+<h2>In English</h2>
+<p>Pixel Zadachnik is an open-source personal task tracker with no backend. All data stays on the user's devices (optionally synced through a private Gist in the user's own GitHub account). Google Calendar access (<code>calendar.events</code>) is requested only when the user connects their calendar, and is used solely to create, update and delete events for the user's own task deadlines and to display the user's events in the app. Tokens are stored locally and sent only to Google. Google user data is never sold, shared with third parties, or used for advertising or model training. Access can be revoked in the app or at myaccount.google.com/permissions.</p>
+
+<p class="dim">Вопросы: через <a href="https://github.com/eMRK-xd/pixel-zadachnik/issues">issues на GitHub</a>.</p>
+</main>
+</body>
+</html>

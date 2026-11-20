@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--panel:#06080c;--line:#24344a;--ink:#e8dfc8;--dim:#8b9bb0;--gold:#d4a640;--gold-d:#6e4f1c;--px:4px;font-family:"Pixelify Sans",monospace}
+body{margin:0;background:#000;color:var(--ink);padding:18px;-webkit-font-smoothing:none}
+.px{position:relative;background:var(--panel);box-shadow:0 calc(-1*var(--px)) 0 0 var(--c,var(--line)),0 var(--px) 0 0 var(--c,var(--line)),calc(-1*var(--px)) 0 0 0 var(--c,var(--line)),var(--px) 0 0 0 var(--c,var(--line)),inset 0 calc(-1*var(--px)) 0 0 rgba(0,0,0,.35),inset 0 var(--px) 0 0 rgba(255,255,255,.06)}
+.btn{--c:var(--gold-d);background:#0b1019;color:#e7c56a;border:0;cursor:pointer;margin:4px;--hl:#fff4cf;font:inherit;font-size:15px}
+.ico{width:30px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.rep{display:inline-flex;align-items:center;gap:7px;padding:6px 10px}
+svg{image-rendering:pixelated;shape-rendering:crispEdges}
+.phone{width:340px;border:2px solid #222;padding:10px 12px;margin:0 14px 14px 0;display:inline-block;vertical-align:top}
+.top{display:flex;align-items:center;gap:6px}.logo{font-weight:700;font-size:16px;color:#e7c56a}.date{margin-left:auto;color:var(--dim);font-size:12px}
+.bot{display:flex;justify-content:flex-end;margin-top:18px}
+h3{font-size:14px;color:var(--dim);margin:0 0 8px;font-weight:400}
+</style></head><body><div id="v"></div>
+<script>
+const GEAR=["...XX...",".X.XX.X.","..XXXX..","XXX..XXX","XXX..XXX","..XXXX..",".X.XX.X.","...XX..."];
+const R={
+  A:["XXXXXXXXXX","XoX....XoX","X.X....X.X","X..X..X..X","X...XX...X","X........X","X........X","XXXXXXXXXX"],                  // конверт
+  B:[".XXXXXXX..","XoXXXXXXX.",".X.....X..",".X.XXX.X..",".X.....X..",".X.XXXXX..",".X.....X..","XXXXXXXXX.","XoXXXXXXXX"], // свиток
+  C:[".XXXXXX...",".X....XX..",".X.XX.XoX.",".X.....XX.",".X.XXXX.X.",".X......X.",".X.XXX..X.",".X......X.",".XXXXXXXX."],  // листок с загнутым углом
+  D:["......XX..",".....XoX..","....XXX...","...XXX....","..XXX.....","XXXX......","X.X.......","XX.XXXXXXX"]};                 // перо
+const N={A:"A · конверт",B:"B · свиток",C:"C · листок с загнутым углом",D:"D · перо"};
+const svg=m=>{const n=Math.max(m.length,m[0].length);return `<svg width="${m[0].length*2}" height="${m.length*2}" viewBox="0 0 ${m[0].length} ${m.length}">${m.map((r,y)=>[...r].map((c,x)=>c==="X"?`<rect x="${x}" y="${y}" width="1" height="1" fill="currentColor"/>`:c==="o"?`<rect x="${x}" y="${y}" width="1" height="1" style="fill:var(--hl)"/>`:"").join("")).join("")}</svg>`};
+document.getElementById("v").innerHTML=`<div class="phone"><h3>сейчас</h3><div class="top"><span class="logo">ЗАДАЧНИК</span><span class="date">19.11.2026</span><button class="btn px" style="padding:3px 7px;font-size:13px">⚙</button></div><div class="bot"><button class="btn px rep">✉ отчёт</button></div></div>`+
+Object.keys(R).map(k=>`<div class="phone"><h3>${N[k]}</h3><div class="top"><span class="logo">ЗАДАЧНИК</span><span class="date">19.11.2026</span><button class="btn px ico">${svg(GEAR)}</button></div><div class="bot"><button class="btn px rep">${svg(R[k])}отчёт</button></div></div>`).join("");
+</script></body></html>

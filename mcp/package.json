@@ -1,0 +1,12 @@
+{
+  "name": "zadachnik-mcp",
+  "version": "0.1.0",
+  "description": "MCP server: lets an AI read the pixel tracker's tasks and drop new ones into its Inbox",
+  "type": "module",
+  "private": true,
+  "bin": { "zadachnik-mcp": "server.js" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  }
+}

@@ -1,0 +1,55 @@
+# Builds the Android app (Capacitor wrapper around web/) and attaches Zadachnik.apk to the latest release
+name: android
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", "mobile/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - name: Android project from web/
+        working-directory: mobile
+        run: |
+          npm install --no-audit --no-fund
+          rm -rf www && cp -r ../web www && rm -f www/sw.js
+          npx cap add android
+          npx cap sync android
+          # pixel icon: adaptive (black background + emblem) and legacy (emblem on black) — no white fill from launchers
+          RES=android/app/src/main/res
+          for d in $RES/mipmap-*dpi; do
+            cp icons/ic_launcher.png "$d/ic_launcher.png"; cp icons/ic_launcher.png "$d/ic_launcher_round.png"
+            cp icons/ic_launcher_foreground.png "$d/ic_launcher_foreground.png"
+          done
+          echo '<?xml version="1.0" encoding="utf-8"?><resources><color name="ic_launcher_background">#000000</color></resources>' > $RES/values/ic_launcher_background.xml
+          # black window instead of the white launch screen / system bars
+          sed -i 's#@drawable/splash#@android:color/black#g' $RES/values/styles.xml
+          sed -i '/name="AppTheme.NoActionBar"/a <item name="android:windowBackground">@android:color/black</item><item name="android:statusBarColor">@android:color/black</item><item name="android:navigationBarColor">@android:color/black</item>' $RES/values/styles.xml
+          cat $RES/values/styles.xml
+      - name: Build APK
+        working-directory: mobile/android
+        run: ./gradlew assembleRelease --no-daemon -q
+      - name: Sign with the project key (same key every build, so updates install over the old app)
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+        run: |
+          BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          echo "$KS_B64" | base64 -d > key.p12
+          "$BT/zipalign" -f -p 4 mobile/android/app/build/outputs/apk/release/app-release-unsigned.apk aligned.apk
+          "$BT/apksigner" sign --ks key.p12 --ks-type PKCS12 --ks-key-alias zadachnik --ks-pass env:KS_PASS --key-pass env:KS_PASS --out Zadachnik.apk aligned.apk
+          "$BT/apksigner" verify --print-certs Zadachnik.apk | head -3
+          rm -f key.p12
+      - name: Attach to release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh release upload "$(gh release view --json tagName -q .tagName)" Zadachnik.apk --clobber
+      - uses: actions/upload-artifact@v4
+        with: { name: Zadachnik-apk, path: Zadachnik.apk }

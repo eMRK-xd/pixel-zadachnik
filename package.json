@@ -1,0 +1,13 @@
+{
+  "name": "pixel-zadachnik",
+  "version": "0.1.0",
+  "description": "Пиксельный задачник — полоска справа на всю высоту (Tauri)",
+  "private": true,
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build --no-bundle"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.5"
+  }
+}

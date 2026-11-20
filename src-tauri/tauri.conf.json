@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Zadachnik",
+  "version": "0.1.0",
+  "identifier": "com.pixel.zadachnik",
+  "build": {
+    "frontendDist": "../web"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Пиксельный задачник",
+        "width": 380,
+        "height": 800,
+        "minWidth": 300,
+        "decorations": false,
+        "resizable": true,
+        "visible": false,
+        "alwaysOnTop": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": [
+      "icons/icon.ico",
+      "icons/icon.png"
+    ]
+  }
+}

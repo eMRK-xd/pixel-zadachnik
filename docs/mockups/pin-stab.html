@@ -1,0 +1,51 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--panel:#06080c;--line:#24344a;--ink:#e8dfc8;--dim:#8b9bb0;--gold:#d4a640;--gold-d:#6e4f1c;--px:4px;font-family:"Pixelify Sans",monospace}
+body{margin:0;background:#000;color:var(--ink);padding:18px;-webkit-font-smoothing:none}
+.px{position:relative;background:var(--panel);box-shadow:0 calc(-1*var(--px)) 0 0 var(--c,var(--line)),0 var(--px) 0 0 var(--c,var(--line)),calc(-1*var(--px)) 0 0 0 var(--c,var(--line)),var(--px) 0 0 0 var(--c,var(--line)),inset 0 calc(-1*var(--px)) 0 0 rgba(0,0,0,.35),inset 0 var(--px) 0 0 rgba(255,255,255,.06)}
+.btn{--c:var(--gold-d);background:#0b1019;color:#e7c56a;border:0;cursor:pointer;margin:4px;--hl:#fff4cf}
+.btn.on{background:var(--gold);color:#1a0f05;--hl:#8a6a2a}
+.ico{width:30px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;overflow:visible}
+svg{image-rendering:pixelated;shape-rendering:crispEdges;display:block}
+.top{display:flex;align-items:center;gap:6px;width:356px;padding:10px 12px;background:#000;border-left:4px solid #3b2766}
+.logo{font-weight:700;font-size:16px;color:#e7c56a}.date{color:var(--dim);font-size:13px;margin-left:auto}
+p{color:var(--dim);font-size:13px}
+/* pin: drops and its needle goes through the bottom frame when switched on, pops out when off */
+#pin svg{transition:none}
+#pin.on svg{transform:translateY(7px)}
+/* stab: slowly lifts and gathers itself, then accelerates hard and drives in; the button jolts on impact */
+#pin.stab svg{animation:stab .62s linear}
+@keyframes stab{
+  0%{transform:translateY(0);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+  45%{transform:translateY(-4px);animation-timing-function:cubic-bezier(.7,0,1,.6)}   /* wind-up: slow, then speeding up */
+  66%{transform:translateY(9px) scaleY(.88);animation-timing-function:ease-out}         /* impact, a little squash */
+  80%{transform:translateY(6px)}
+  100%{transform:translateY(7px)}}
+#pin.stab{animation:jolt .62s linear}
+@keyframes jolt{0%,64%{transform:none}68%{transform:translateY(2px)}76%{transform:translateY(-1px)}84%,100%{transform:none}}
+#pin.pull svg{animation:pull .3s steps(5)}
+@keyframes pull{0%{transform:translateY(7px)}45%{transform:translateY(-5px)}100%{transform:translateY(0)}}
+#pin.on::after{content:"";position:absolute;left:50%;bottom:-4px;width:2px;height:2px;margin-left:-1px;background:#1a0f05} /* hole in the frame */
+.toast{position:fixed;left:18px;top:120px;background:#0b1019;color:#f3d48a;padding:8px 14px;--c:var(--gold-d);opacity:0;transform:translateY(6px);transition:all .15s steps(3)}
+.toast.show{opacity:1;transform:none}
+#hide.shake{animation:shake .3s steps(4)}
+@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.gone{opacity:.15;transition:opacity .3s}
+</style></head><body>
+<div class="top" id="win"><span class="logo">ЗАДАЧНИК</span><span class="date">19.11.2026</span><button class="btn px ico" id="gear"></button><button class="btn px ico" id="pin"></button><button class="btn px ico" id="hide"></button></div>
+<p>Потыкай пин и крестик. Крестик на макете только притворяется, что прячет окно.</p>
+<div class="toast px" id="toast"></div>
+<script>
+const ICO={gear:["...XX...",".X.XX.X.","..XXXX..","XXX..XXX","XXX..XXX","..XXXX..",".X.XX.X.","...XX..."],
+  pin:["...XXXX...","..XoXXXX..","..XXXXXX..","...XXXX...","...XXXX...","..XXXXXX..",".XXXXXXXX.","....XX....","....XX....","....X....."],
+  close:["X......X",".X....X.","..X..X..","...XX...","...XX...","..X..X..",".X....X.","X......X"]};
+const svg=m=>{const n=m.length;return `<svg width="${n*2}" height="${n*2}" viewBox="0 0 ${n} ${n}">${m.map((r,y)=>[...r].map((c,x)=>c==="X"?`<rect x="${x}" y="${y}" width="1" height="1" fill="currentColor"/>`:c==="o"?`<rect x="${x}" y="${y}" width="1" height="1" style="fill:var(--hl)"/>`:"").join("")).join("")}</svg>`};
+gear.innerHTML=svg(ICO.gear);pin.innerHTML=svg(ICO.pin);hide.innerHTML=svg(ICO.close);
+pin.onclick=()=>{const on=!pin.classList.contains("on");pin.classList.remove("stab","pull");void pin.offsetWidth;pin.classList.toggle("on",on);pin.classList.add(on?"stab":"pull")};
+let ht=0;
+hide.onclick=()=>{if(ht){clearTimeout(ht);ht=0;go();return} // second click: hide at once
+  toast.textContent="А как же ваши задачи?";toast.classList.add("show");hide.classList.remove("shake");void hide.offsetWidth;hide.classList.add("shake");
+  ht=setTimeout(()=>{ht=0;go()},1100)};
+const go=()=>{toast.classList.remove("show");win.classList.add("gone");setTimeout(()=>win.classList.remove("gone"),1200)};
+</script></body></html>

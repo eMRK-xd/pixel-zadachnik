@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Пиксельный задачник</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+/* Pixelify Sans (OFL) with lowercase ь ъ ы brought down to x-height, shipped with the app: web/fonts/ */
+@font-face{font-family:"Pixelify Zadachnik";src:url(fonts/PixelifyZadachnik-Regular.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Pixelify Zadachnik";src:url(fonts/PixelifyZadachnik-SemiBold.woff2) format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"Pixelify Zadachnik";src:url(fonts/PixelifyZadachnik-Bold.woff2) format("woff2");font-weight:700;font-display:swap}
+:root{
+  --bg:#140b24; --bg2:#1d1233; --panel:#251843; --line:#3b2766; --ink:#efe3c2; --dim:#a493c9;
+  --gold:#c9962b; --gold-d:#7d5a14; --px:4px;
+  --ff:"Pixelify Zadachnik", ui-monospace, monospace;
+  font-family:var(--ff);
+}
+body.f-alt{-webkit-font-smoothing:auto}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+button:focus:not(:focus-visible),[tabindex]:focus:not(:focus-visible){outline:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-size:15px;-webkit-font-smoothing:none}
+body{background-image:linear-gradient(var(--bg2) 2px,transparent 2px),linear-gradient(90deg,var(--bg2) 2px,transparent 2px);background-size:24px 24px;overflow:hidden}
+button,input{font:inherit;color:inherit}
+svg.spr{image-rendering:pixelated;shape-rendering:crispEdges;flex:none}
+
+/* pixel frame: notched corners via box-shadow */
+.px{position:relative;background:var(--panel);
+  box-shadow:0 calc(-1*var(--px)) 0 0 var(--c,var(--line)),0 var(--px) 0 0 var(--c,var(--line)),
+  calc(-1*var(--px)) 0 0 0 var(--c,var(--line)),var(--px) 0 0 0 var(--c,var(--line)),
+  inset 0 calc(-1*var(--px)) 0 0 rgba(0,0,0,.35), inset 0 var(--px) 0 0 rgba(255,255,255,.06)}
+.btn{--c:var(--gold-d);background:#3a2a17;color:#f3d48a;border:0;padding:6px 12px;cursor:pointer;margin:4px}
+.btn:hover{background:#4a3519}
+.btn:active{transform:translateY(2px)}
+.btn.on{background:var(--gold);color:#1a0f05}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;color:#f3d48a;letter-spacing:1px}
+.date{color:var(--dim);font-size:13px}
+.xp{display:flex;align-items:center;gap:8px;margin-left:auto}
+.xpbar{--c:#5b3f8f;width:160px;height:14px;background:#120a20;padding:0}
+.xpfill{height:100%;background:repeating-linear-gradient(90deg,#e0b13e 0 8px,#c9962b 8px 12px);transition:width .3s steps(6)}
+.xp small{color:var(--dim)}
+
+/* board mode */
+#app{height:100%;display:flex;flex-direction:column}
+.board{flex:1;display:flex;gap:18px;padding:10px 22px 14px;overflow-x:auto;min-height:0}
+.col{--c:var(--cc);flex:0 0 260px;display:flex;flex-direction:column;min-height:0;background:color-mix(in srgb,var(--cc) 10%,#1b1130);margin:4px}
+.colhead{display:flex;align-items:center;gap:8px;padding:10px 10px 8px;background:color-mix(in srgb,var(--cc) 30%,#1b1130);font-weight:700;letter-spacing:.5px;cursor:default;user-select:none}
+.colhead .cnt{margin-left:auto;font-size:12px;background:#0006;padding:1px 6px;color:var(--cc)}
+.colhead .tog{display:none;margin-left:6px;color:var(--dim)}
+.list{flex:1;overflow-y:auto;padding:10px 10px 4px;min-height:40px}
+.list.over{background:color-mix(in srgb,var(--cc) 12%,transparent)}
+.add{display:flex;padding:6px 10px 10px}
+.add input{flex:1;min-width:0;background:#0d0718;border:0;padding:6px 8px;outline:none;--c:#3b2766;color:var(--ink)}
+.add input::placeholder{color:#6d5d94}
+
+/* cards */
+.card{--c:color-mix(in srgb,var(--cc) 55%,#000);display:flex;gap:8px;align-items:flex-start;background:#2a1c48;padding:8px 8px 8px 6px;margin:4px 4px 12px;cursor:grab;user-select:none;transition:transform .08s}
+@media (hover:hover){.card:hover{transform:translate(-1px,-2px);background:#33225a}} /* phones keep a tapped card "hovered"; no hover look there */
+.card.dragging{opacity:.35}
+.card.done .txt{text-decoration:line-through;color:#7f71a6}
+.card.done{background:#1f1538}
+.chk{flex:none;width:16px;height:16px;margin-top:1px;background:#0d0718;cursor:pointer;box-shadow:inset 0 0 0 2px var(--cc)}
+.card.done .chk{background:var(--cc);box-shadow:inset 0 0 0 2px var(--cc),inset 0 0 0 5px #0d0718}
+.body{flex:1;min-width:0}
+.txt{line-height:1.25;word-wrap:break-word;outline:none}
+.meta{display:flex;gap:6px;margin-top:5px;align-items:center;flex-wrap:wrap}
+.src{font-size:11px;padding:0 5px;background:#0007;color:var(--dim)}
+.src.gc{color:#9fe0a8}.src.yg{color:#8fd0ff}.src.nt{color:#ffffff}.src.dl{color:#f3d48a}.src.ob{color:#c79bff}.src.ai{color:#f0a07a}
+.when{font-size:11px;color:#6d5d94}
+.del{opacity:0;border:0;background:none;color:#9b5a6e;cursor:pointer;padding:0 2px;font-size:14px}
+.card:hover .del{opacity:1}
+.ph{height:34px;margin:4px 4px 12px;border:2px dashed var(--cc);opacity:.6}
+/* subtasks, description, assignees */
+.prog{display:inline-flex;gap:1px;align-items:center;font-size:11px;color:var(--dim)}
+.prog i{width:4px;height:7px;background:#0009;box-shadow:inset 0 0 0 1px #ffffff1a}
+.prog i.f{background:var(--cc);box-shadow:none}
+.prog b{font-weight:400;margin-left:4px}
+.who{font-size:11px;color:#6d5d94}
+.ext{font-size:10px;color:#6d5d94;letter-spacing:.5px}
+.card.ready,body.loop .card.ready{--c:#e7c56a}
+.card.due-today,body.loop .card.due-today{--c:#e0a24a}
+.card.due-late,body.loop .card.due-late{--c:#c4566a}
+body:not(.loop) .card.due-today{background:#3a2a17}body:not(.loop) .card.due-late{background:#3a1a24}
+body.loop .card.due-today{background:linear-gradient(#1c150a,#0d0905)}
+body.loop .card.due-late{background:linear-gradient(#1e0c12,#0d0508)}
+.subs li.today .st{color:#f0b45a}.subs li.late .st{color:#f08a9a}
+.det .open,.subs .open{font-size:11px;color:#6fc3d9;text-decoration:none}
+.det .open:hover,.subs .open:hover{color:#fff}
+.rdy{font-size:11px;padding:0 5px;background:#e7c56a;color:#1a0f05;animation:rdy 1.4s steps(2) infinite}
+@keyframes rdy{50%{background:#b4862e}}
+.card.exp{cursor:default}
+.det{margin-top:8px;padding-top:7px;border-top:2px dashed #ffffff1c;cursor:default;user-select:text}
+.det .dhead{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:5px}
+.from{font-size:10px;color:#8a7a5a;letter-spacing:.5px}
+.det textarea{width:100%;min-height:40px;background:#0007;border:0;color:var(--ink);font:inherit;font-size:13px;padding:5px 6px;resize:vertical;outline:none;display:block}
+.det textarea::placeholder{color:#5a6a80}
+.subs{list-style:none;margin:6px 0 0;padding:0}
+.subs li{display:flex;gap:7px;align-items:flex-start;padding:3px 0;font-size:13px;line-height:1.25}
+.subs .sc{flex:none;width:12px;height:12px;margin-top:2px;background:#0009;box-shadow:inset 0 0 0 2px var(--cc);cursor:pointer}
+.subs li.done .sc{background:var(--cc);box-shadow:inset 0 0 0 2px var(--cc),inset 0 0 0 4px #060910}
+.subs li.done .st{text-decoration:line-through;color:#5a6a80}
+.subs .swr{flex:1;min-width:0}
+.subs .st{word-wrap:break-word;outline:none}
+.subs .sm{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:2px}
+.subs .sm:empty{display:none}
+.sb{opacity:0;border:0;background:none;color:var(--dim);cursor:pointer;padding:0 1px;font-size:11px}
+.subs li:hover .sb{opacity:1}
+.subadd{display:flex;margin-top:4px}
+.subadd input{flex:1;min-width:0;background:#0007;border:0;padding:4px 6px;outline:none;color:var(--ink);font-size:13px}
+.subadd input::placeholder{color:#5a6a80}
+.mv{display:flex;flex-wrap:wrap;gap:3px;margin-top:7px;align-items:center;font-size:11px;color:var(--dim)}
+.mv button{border:0;background:#0008;color:var(--cc2);cursor:pointer;font-size:11px;padding:1px 6px}
+.mv button:hover{background:#000}
+
+/* daily log */
+#app{position:relative}
+.daily{--c:#7d5a14;position:absolute;left:26px;bottom:18px;z-index:5;background:#22170f;padding:8px 14px;display:flex;gap:16px;align-items:flex-start;filter:drop-shadow(6px 8px 0 rgba(0,0,0,.7))}
+.daily h3{cursor:pointer;user-select:none}
+.daily .arr{color:var(--gold)}
+.daily .dcnt{font-size:11px;background:#0007;padding:0 5px;color:var(--dim)}
+.daily:not(.open) ul{display:none}
+.daily.open{right:26px;animation:unfold .34s cubic-bezier(.2,.8,.2,1)}
+.daily ul{max-height:40vh}
+@keyframes unfold{from{clip-path:inset(100% -20px -20px -20px);transform:translateY(6px);opacity:.5}to{clip-path:inset(-20px -20px -20px -20px);transform:none;opacity:1}}
+.daily.open li{animation:rise .38s cubic-bezier(.2,.8,.2,1) backwards}
+.daily.open li:nth-child(2){animation-delay:.04s}.daily.open li:nth-child(3){animation-delay:.08s}.daily.open li:nth-child(4){animation-delay:.12s}.daily.open li:nth-child(n+5){animation-delay:.16s}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* settings drop down from the gear the same way the daily panel unfolds upwards */
+.settings.open{animation:unfoldD .34s cubic-bezier(.2,.8,.2,1)}
+@keyframes unfoldD{from{clip-path:inset(-20px -20px 100% -20px);transform:translateY(-6px);opacity:.5}to{clip-path:inset(-20px -20px -20px -20px);transform:none;opacity:1}}
+.settings.opening .sg{animation:dropIn .38s cubic-bezier(.2,.8,.2,1) backwards}
+.settings.opening .sg:nth-child(2){animation-delay:.04s}.settings.opening .sg:nth-child(3){animation-delay:.08s}.settings.opening .sg:nth-child(4){animation-delay:.12s}.settings.opening .sg:nth-child(n+5){animation-delay:.16s}
+@keyframes dropIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+body.anim-fast .settings.open,body.anim-fast .settings.opening .sg,body.anim-fast .daily.open,body.anim-fast .daily.open li{animation-duration:.16s;animation-delay:0s}
+body.anim-off .settings.open,body.anim-off .settings.opening .sg,body.anim-off .daily.open,body.anim-off .daily.open li{animation:none}
+/* the card answers the touch in the same frame: a pixel lower and a little lighter, before anything opens */
+.card:active:not(:has(.det:active,button:active,.chk:active)){transform:translateY(1px);transition:none}
+.card:active:not(:has(.det:active,button:active,.chk:active))::after{content:"";position:absolute;inset:0;background:rgba(255,255,255,.05);pointer-events:none} /* a shade lighter than whatever the card is */
+.board{padding-bottom:calc(70px + var(--dockh,0px))}
+#moddock{position:absolute;right:26px;bottom:64px;z-index:4;display:flex;flex-direction:column;align-items:flex-end;gap:12px;pointer-events:none}
+#moddock:empty{display:none}
+.modtile{--c:var(--line);padding:0;pointer-events:auto;background:var(--panel);filter:drop-shadow(6px 8px 0 rgba(0,0,0,.7));animation:rise .38s cubic-bezier(.2,.8,.2,1)}
+.modtile iframe{display:block;border:0;width:100%;height:100%;background:transparent;color-scheme:normal}
+body.loop .modtile{--c:#24344a;background:#06080c}
+body.vcal #moddock{display:none}
+.daily h3{margin:0;color:#f3d48a;font-size:15px;display:flex;gap:8px;align-items:center;white-space:nowrap}
+.daily ul{list-style:none;margin:0;padding:0;columns:2;column-gap:28px;flex:1;overflow:auto}
+.daily li{break-inside:avoid;padding:2px 0;color:#e8d6a8;display:flex;gap:6px}
+.daily li::before{content:"▪";color:var(--gold)}
+.daily li button{border:0;background:none;color:#8a6a2a;cursor:pointer;padding:0;margin-left:auto}
+.daily li button:hover{color:#f3d48a}
+
+/* juice */
+#fx{position:fixed;inset:0;pointer-events:none;z-index:8;image-rendering:pixelated}
+@keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.06,.9)}60%{transform:scale(.97,1.05)}100%{transform:scale(1)}}
+@keyframes flash{0%,40%{background:#f3d48a}100%{}}
+.card.pop{animation:pop .28s steps(4)}
+.card.pop .chk{animation:flash .3s steps(3)}
+@keyframes shake{0%,100%{transform:none}25%{transform:translate(-3px,2px)}50%{transform:translate(3px,-2px)}75%{transform:translate(-2px,-1px)}}
+#app.shake{animation:shake .25s steps(4)}
+@keyframes land{0%{transform:translateY(-6px)}50%{transform:translateY(2px)}100%{transform:none}}
+.card.land{animation:land .2s steps(3)}
+
+/* ===== LOOP theme: night sky from the Steam banner + gold frames ===== */
+body.loop{--bg:#000;--bg2:#050608;--panel:#06080c;--line:#24344a;--ink:#e8dfc8;--dim:#8b9bb0;--gold:#d4a640;--gold-d:#6e4f1c;background-color:var(--bg)}
+body.loop .logo,body.loop .daily h3{color:#e7c56a;text-shadow:2px 2px 0 #3a2410}
+body.loop .btn{background:#0b1019;color:#e7c56a}
+body.loop .btn:hover{background:#121a28}
+body.loop .btn.on{background:#d4a640;color:#1a0f05}
+body.loop .xpbar{--c:#6e4f1c;background:#060910}
+body.loop .xpfill{background:repeating-linear-gradient(90deg,#e7c56a 0 8px,#b4862e 8px 12px)}
+body.loop .col{--c:#22324a;background:#030406}
+body.loop .colhead{background:linear-gradient(#0b111b,#06080c);border-bottom:2px solid var(--cc);color:#e9dbb7}
+body.loop .colhead .cnt{color:#e7c56a}
+body.loop .add input{background:#060910;--c:#22324a}
+body.loop .add input::placeholder{color:#5a6a80}
+/* golden card frame: outer dark-gold notched border + inner bright gold hairline + column-tinted top band */
+body.loop .card{--c:#7a5a22;background:linear-gradient(#0c121c,#06090e);
+  box-shadow:0 -4px 0 0 var(--c),0 4px 0 0 var(--c),-4px 0 0 0 var(--c),4px 0 0 0 var(--c),
+  inset 0 0 0 2px #000,inset 0 0 0 4px #c99b3f,inset 0 6px 0 0 color-mix(in srgb,var(--cc) 55%,#000),inset 0 -6px 0 0 #000;
+  padding:12px 10px 12px 10px}
+@media (hover:hover){body.loop .card:hover{background:linear-gradient(#131c2b,#0a0f17)}}
+body.loop .card.done{--c:#22324a;background:#030406;box-shadow:0 -4px 0 0 var(--c),0 4px 0 0 var(--c),-4px 0 0 0 var(--c),4px 0 0 0 var(--c),inset 0 0 0 2px #000,inset 0 0 0 4px #2c3d55}
+body.loop .card.done .txt{color:#5a6a80}
+body.loop .chk{background:#060910}
+body.loop .src{background:#060910}
+body.loop .when{color:#6a7a90}
+body.loop .src.nt{color:#e9dbb7}.src.yg{}body.loop .src.yg{color:#7fb0a8}body.loop .src.ob{color:#c49a6c}
+body.loop .daily{--c:#6e4f1c;background:#050608}
+body.loop .daily li{color:#d9cfb4}
+body.loop.strip #app{border-left-color:#6e4f1c}
+body.loop.strip .desk{background:radial-gradient(circle at 30% 40%,#070b12,#000 70%);color:#22324a}
+body.loop .toast{--c:#d4a640;background:#06080c;color:#e7c56a}
+
+body.loop .src.yg{color:#6fc3d9}body.loop .xpfill{background:repeating-linear-gradient(90deg,#e0a24a 0 8px,#c06a2c 8px 12px)}
+body.loop{background-image:radial-gradient(#6fc3d933 1px,transparent 1.5px),radial-gradient(#ffffff1c 1px,transparent 1.5px);background-size:97px 89px,151px 137px;background-position:0 0,40px 60px}
+/* CRT: scanlines + vignette + faint flicker */
+#crt{position:fixed;inset:0;pointer-events:none;z-index:7;display:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.55) 100%);
+  animation:flick 4s steps(2) infinite}
+body.crt #crt{display:block}
+@keyframes flick{0%,96%,100%{opacity:1}97%{opacity:.85}}
+/* ===== desktop app mode (Electron) ===== */
+.winbtns{display:none;margin-left:auto}
+body.app .winbtns{display:inline-flex}
+body.app .desk,body.app .modebtns{display:none!important}
+body.app.strip #app{position:fixed;inset:0;width:auto}
+body.app .top{-webkit-app-region:drag}
+body.app .top button,body.app .top input,body.app .xp,body.app #logoSpr,body.app .settings{-webkit-app-region:no-drag}
+.winbtns .btn{padding:4px 9px}
+body.app .top .btn.ico{width:30px;height:28px;padding:0;margin:4px;display:inline-flex;align-items:center;justify-content:center;--hl:#fff4cf}
+body.app .top .btn.ico.on{--hl:#8a6a2a}
+.ico svg{image-rendering:pixelated;shape-rendering:crispEdges}
+.report{display:inline-flex;align-items:center;gap:7px;--hl:#fff4cf}.report .ri{display:inline-flex}.report svg{image-rendering:pixelated;shape-rendering:crispEdges;display:block}
+body:not(.app) #setb.ico{width:28px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;--hl:#fff4cf}
+#pinb.on svg{transform:translateY(7px)}
+#pinb.stab svg{animation:pinStab .62s linear}#pinb.stab{animation:pinJolt .62s linear}
+#pinb.pull svg{animation:pinPull .3s steps(5)}
+@keyframes pinStab{0%{transform:translateY(0);animation-timing-function:cubic-bezier(.45,0,.55,1)}45%{transform:translateY(-4px);animation-timing-function:cubic-bezier(.7,0,1,.6)}66%{transform:translateY(9px) scaleY(.88);animation-timing-function:ease-out}80%{transform:translateY(6px)}100%{transform:translateY(7px)}}
+@keyframes pinJolt{0%,64%{transform:none}68%{transform:translateY(2px)}76%{transform:translateY(-1px)}84%,100%{transform:none}}
+@keyframes pinPull{0%{transform:translateY(7px)}45%{transform:translateY(-5px)}100%{transform:translateY(0)}}
+
+/* ===== settings popover, weekly goals, report ===== */
+.top{position:relative}
+#setb.on{background:var(--gold);color:#1a0f05}
+.settings{--c:var(--line);display:none;position:absolute;top:calc(100% - 4px);right:18px;z-index:20;flex-wrap:wrap;gap:2px;padding:8px;max-width:330px;background:var(--panel);filter:drop-shadow(6px 8px 0 rgba(0,0,0,.7))}
+.settings.open{display:flex}
+.goals{--c:#6e4f1c;margin:2px 26px 4px;padding:8px 12px;background:var(--panel);display:flex;gap:12px;align-items:flex-start}
+.goals h4{margin:0;color:#e7c56a;white-space:nowrap;font-size:14px;display:flex;gap:6px;align-items:center}
+.goals ol{margin:0;padding-left:20px;flex:1;columns:2;column-gap:24px;font-size:14px}
+.goals li{break-inside:avoid;padding:1px 0}
+.goals .empty{flex:1;color:var(--dim);font-size:13px}
+.goals .stale{font-size:11px;color:#1a0f05;background:#e07a35;padding:0 5px;margin-left:4px}
+.goals h4{cursor:pointer;user-select:none}
+.goals .arr{color:var(--gold)}
+.goals .dcnt{font-size:11px;background:#0007;padding:0 5px;color:var(--dim)}
+.goals.closed{padding:5px 12px}
+.goals .edit{border:0;background:none;color:var(--dim);cursor:pointer;font-size:14px;padding:0 2px}
+.goals .edit:hover{color:#e7c56a}
+.goals textarea{flex:1;min-height:90px;background:#060910;color:var(--ink);border:0;padding:6px 8px;font:inherit;font-size:14px;outline:none;resize:vertical}
+.report{position:absolute;right:26px;bottom:18px;z-index:6;margin:0;padding:8px 14px;filter:drop-shadow(6px 8px 0 rgba(0,0,0,.7))}
+.daily.open{right:150px}
+body.strip .goals{margin:2px 16px 4px;flex-direction:column;gap:4px}
+body.strip .goals ol{columns:1}
+body.strip .report{right:14px;bottom:14px;padding:6px 10px}
+body.strip .daily.open{right:14px;bottom:56px}
+
+/* view tabs + calendar */
+.tabs{display:flex;gap:2px;padding:0 22px 4px}
+.tabs .tab{border:0;background:none;color:var(--dim);cursor:pointer;padding:3px 10px 5px;display:flex;gap:6px;align-items:center;border-bottom:3px solid transparent;font-size:14px}
+.tabs .tab:hover{color:var(--ink)}
+.tabs .tab.on{color:#e7c56a;border-bottom-color:var(--gold)}
+.tabs .tab small{font-size:10px;background:#c4566a;color:#fff;padding:0 4px}
+body.strip .tabs{padding:0 12px 2px}
+.cal{display:none;flex:1;overflow-y:auto;padding:6px 22px 20px;min-height:0}
+body.vcal .cal{display:block}
+body.vcal .board,body.vcal .goals,body.vcal .daily,body.vcal .report{display:none!important}
+body.strip .cal{padding:6px 12px 20px}
+.calsrc{--c:#22324a;margin:4px 4px 12px;padding:8px 10px;font-size:13px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.calsrc b{color:#e7c56a}
+.calsrc small{color:var(--dim);flex:1 1 0;min-width:0;font-size:11px}
+.calsrc small.err{color:#e88}
+.calsrc .btn{margin:0;padding:2px 8px}
+.calhelp{width:100%;color:var(--dim);font-size:12px;line-height:1.4;margin-top:4px}
+.calhelp a{color:#6fc3d9}
+.calhelp ol{margin:2px 0 6px;padding-left:18px}
+.calhelp .row{display:flex;gap:6px;margin:6px 0}
+.calhelp input{flex:1;min-width:0;background:#060910;color:var(--ink);border:0;padding:5px 7px;font:inherit;font-size:12px;outline:none}
+.cday{margin:10px 4px 4px;font-size:13px;color:var(--dim);display:flex;gap:8px;align-items:baseline;border-bottom:2px solid #ffffff10;padding-bottom:3px}
+.cday b{color:var(--ink);font-weight:600}
+.cday.today b{color:#e7c56a}
+.cday.late b{color:#e88}
+.ci{display:flex;gap:8px;align-items:flex-start;padding:5px 6px;margin:2px 0;font-size:13px;line-height:1.25;background:#ffffff06}
+.ci:hover{background:#ffffff0d}
+.ci .ctit{flex:1;min-width:0;word-wrap:break-word}
+.ci .ctit small{display:block;color:var(--dim);font-size:11px}
+.ci .cchk{flex:none;width:12px;height:12px;margin-top:2px;background:#0009;box-shadow:inset 0 0 0 2px var(--cc);cursor:pointer}
+.ci .cchk:hover{background:var(--cc)}
+.ci.e{border-left:3px solid #6fc3d9}
+.ci .ctime{flex:none;color:#6fc3d9;font-size:12px;min-width:38px}
+.ci .cb{flex:none;border:0;background:#0008;color:var(--dim);cursor:pointer;font-size:11px;padding:1px 6px}
+.ci .cb:hover{color:#e7c56a;background:#000}
+.ci .ing{flex:none;font-size:11px;color:#9fe0a8}
+.ci.sub{margin-left:20px;font-size:12px;background:none;padding:2px 6px}
+.ci.sub .cchk{width:10px;height:10px}
+.cempty{color:var(--dim);font-size:13px;padding:6px}
+/* deadlines */
+.due{font-size:11px;padding:0 5px;background:#0007;color:var(--dim);cursor:pointer}
+.due.soon{color:#ffd166}.due.today{color:#1a0f05;background:#e0a24a}.due.late{color:#fff;background:#c4566a}
+.dueb{opacity:0;border:0;background:none;color:var(--dim);cursor:pointer;padding:0 2px;font-size:12px}
+.card:hover .dueb{opacity:1}
+#duepop input[type=date]{color-scheme:dark}
+/* task source popover */
+.src[data-src]{cursor:pointer}
+.src[data-src]:hover{color:#fff4cf;background:#000c}
+.srcpop{--c:#7a5a22;display:none;position:fixed;z-index:30;width:270px;padding:10px 12px;background:var(--panel);filter:drop-shadow(6px 8px 0 rgba(0,0,0,.7));font-size:13px}
+.srcpop.open{display:block}
+.srcpop b{color:#e7c56a}
+.srcpop .row{display:flex;gap:6px;margin-top:8px}
+.srcpop input{flex:1;min-width:0;background:#060910;color:var(--ink);border:0;padding:5px 7px;font:inherit;font-size:12px;outline:none}
+.srcpop .btn{margin:0;padding:3px 9px}
+.srcpop small{color:var(--dim)}
+
+/* pixel scrollbars in theme colors */
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--bg);box-shadow:inset 2px 0 0 var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--gold-d);box-shadow:inset 2px 2px 0 rgba(255,255,255,.18),inset -2px -2px 0 rgba(0,0,0,.45)}
+::-webkit-scrollbar-thumb:hover{background:var(--gold)}
+::-webkit-scrollbar-corner{background:var(--bg)}
+.list::-webkit-scrollbar{width:8px}
+.list::-webkit-scrollbar-track{background:transparent;box-shadow:none}
+
+/* eye skin picker */
+#logoSpr{cursor:pointer;display:inline-flex}
+#logoSpr:hover{filter:brightness(1.25)}
+.eyepick{--c:#7a5a22;display:none;position:fixed;z-index:30;left:14px;top:52px;padding:8px;background:var(--panel);filter:drop-shadow(6px 8px 0 rgba(0,0,0,.7));grid-template-columns:repeat(4,64px);gap:6px}
+.eyepick.open{display:grid;animation:pickin .2s steps(4);transform-origin:12px 0}
+@keyframes pickin{from{transform:scale(.8);opacity:.2}to{transform:none;opacity:1}}
+.eyepick button{transition:transform .1s steps(2)}
+.eyepick button:active:not(:disabled){transform:scale(.86)}
+#logoSpr{cursor:pointer;transition:transform .1s steps(2)}
+#logoSpr:active{transform:scale(.84)}
+#logoSpr.bump{animation:bump .4s steps(6)}
+@keyframes bump{0%{transform:scale(.8)}45%{transform:scale(1.28)}100%{transform:scale(1)}}
+.eyepick button{border:0;background:#0007;color:var(--dim);cursor:pointer;padding:6px 2px 4px;font:inherit;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.eyepick button:hover{background:#000b;color:var(--ink)}
+.settings .danger{color:#e88a8a}
+/* settings: shelves with pixel switches */
+.settings.va{flex-wrap:nowrap;max-height:calc(100vh - 80px);overflow-y:auto;width:268px;flex-direction:column;gap:0;padding:6px 6px 8px}
+.sg h5{margin:8px 6px 3px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);font-weight:600}
+.sg:first-child h5{margin-top:2px}
+.srow{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;color:var(--ink);cursor:pointer;padding:4px 6px;text-align:left;font-size:14px}
+.srow:hover{background:#ffffff0d}
+.srow i{font-style:normal;width:16px;text-align:center;color:var(--dim)}
+.srow span{flex:1}
+.srow em{font-style:normal;font-size:12px;color:var(--dim)}
+.srow .sa{color:var(--gold)}
+.sw{width:24px;height:12px;background:#0009;box-shadow:inset 0 0 0 2px var(--line);position:relative;flex:none}
+.sw::after{content:"";position:absolute;left:2px;top:2px;width:8px;height:8px;background:var(--dim)}
+.sw.on{background:var(--gold-d);box-shadow:inset 0 0 0 2px var(--gold)}
+.sw.on::after{left:14px;background:var(--gold)}
+.srow.danger{color:#e88a8a}
+.srow.armed{background:#c4566a;color:#fff;animation:shake .25s steps(4)}
+.srow .setcode{flex:1;margin:0;width:auto}
+/* import box */
+.imp{display:flex;flex-direction:column;gap:5px;margin-top:6px;width:100%}
+.imp textarea{min-height:70px;background:#060910;color:var(--ink);border:0;padding:5px 7px;font:inherit;font-size:12px;outline:none;resize:vertical}
+.imp .btn{align-self:flex-end;margin:0}
+.settings .danger.armed{background:#c4566a;color:#fff;animation:shake .25s steps(4)}
+.settings .setcode{width:92px;margin:4px;background:#060910;color:var(--ink);border:0;padding:5px 7px;font:inherit;font-size:12px;outline:none;box-shadow:inset 0 0 0 2px var(--line);-webkit-app-region:no-drag}
+.settings .setcode.bad{animation:shake .25s steps(4);box-shadow:inset 0 0 0 2px #c4566a}
+.eyepick .code{grid-column:1/-1;background:#060910;color:var(--ink);border:0;padding:5px 7px;font:inherit;font-size:12px;outline:none;box-shadow:inset 0 0 0 2px var(--line)}
+.eyepick .code.bad{animation:shake .25s steps(4);box-shadow:inset 0 0 0 2px #c4566a}
+.eyepick button.locked{cursor:not-allowed;color:#5a6a80}
+.eyepick button.locked svg{filter:grayscale(1) brightness(.35)}
+.eyepick button.on{box-shadow:inset 0 0 0 2px var(--gold);color:#e7c56a}
+
+/* ===== Katana-style neon theme (follows the Самурай skin) ===== */
+body.theming,body.theming *{transition:background-color .9s ease,color .9s ease,border-color .9s ease,box-shadow .9s ease,text-shadow .9s ease,fill .9s ease!important}
+body.kz{--bg:#07040f;--bg2:#120822;--panel:#120a24;--line:#3a1f5c;--ink:#f6ecff;--dim:#a68ad1;--gold:#ff2e88;--gold-d:#7a1347;background-color:#07040f;
+  background-image:radial-gradient(#33e1ff44 1px,transparent 1.5px),radial-gradient(#ff2e8833 1px,transparent 1.5px);background-size:97px 89px,151px 137px}
+body.kz .logo,body.kz .daily h3,body.kz .goals h4{color:#ff5fa8;text-shadow:2px 2px 0 #33e1ff55}
+body.kz .btn{background:#1c1035;color:#ff8cc4}
+body.kz .btn:hover{background:#2a1650}
+body.kz .btn.on{background:#ff2e88;color:#07040f}
+body.kz .col{--c:#3a1f5c;background:#0b0618}
+body.kz .colhead{background:#170c2e;color:#f6ecff}
+body.kz .colhead .cnt{color:#33e1ff}
+body.kz .card{--c:#7a1347;background:#140b28;
+  box-shadow:0 -4px 0 0 var(--c),0 4px 0 0 var(--c),-4px 0 0 0 var(--c),4px 0 0 0 var(--c),
+  inset 0 0 0 2px #07040f,inset 0 0 0 4px #ff2e88,inset 0 6px 0 0 color-mix(in srgb,var(--cc) 55%,#07040f),inset 0 -6px 0 0 #07040f}
+@media (hover:hover){body.kz .card:hover{background:#1d1038}}
+body.kz .card.done{--c:#2a1650;background:#0c0718;box-shadow:0 -4px 0 0 var(--c),0 4px 0 0 var(--c),-4px 0 0 0 var(--c),4px 0 0 0 var(--c),inset 0 0 0 2px #07040f,inset 0 0 0 4px #3a1f5c}
+body.kz .card.done .txt{color:#6a5590}
+body.kz .chk,body.kz .src,body.kz .add input{background:#05030b}
+body.kz .when{color:#7d6aa8}
+body.kz .daily,body.kz .goals,body.kz .settings,body.kz .eyepick,body.kz .srcpop{--c:#7a1347;background:#120a24}
+body.kz .xpbar{--c:#7a1347;background:#05030b}
+body.kz .xpfill{background:repeating-linear-gradient(90deg,#ff2e88 0 8px,#33e1ff 8px 12px)}
+body.kz .toast{--c:#ff2e88;background:#120a24;color:#ff8cc4}
+body.kz #crt{background:repeating-linear-gradient(0deg,rgba(0,0,0,.3) 0 1px,transparent 1px 3px),linear-gradient(90deg,rgba(255,46,136,.05),rgba(51,225,255,.05)),radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.6) 100%)}
+body.kz .col[data-col="inbox"]{--cc:#a68ad1!important}body.kz .col[data-col="possum"]{--cc:#ff2e88!important}
+body.kz .col[data-col="camp"]{--cc:#33e1ff!important}body.kz .col[data-col="merch"]{--cc:#ffd166!important}
+body.kz .col[data-col="plush"]{--cc:#c77dff!important}body.kz .col[data-col="other"]{--cc:#4dffb8!important}
+body.kz ::-webkit-scrollbar-thumb{background:#7a1347}
+
+/* ===== phone ===== */
+body.mobile.strip #app{left:0;width:auto;border-left:0;box-shadow:none;padding-top:env(safe-area-inset-top)}
+body.mobile .desk{display:none!important}
+body.mobile .card{font-size:15px;contain:layout paint}
+#fx,#crt{will-change:transform;transform:translateZ(0)}
+body.mobile #crt{animation:none}
+body.mobile .daily,body.mobile .report,body.mobile .settings{filter:none} /* drop-shadow filters are costly on phones; the pixel frame stays */
+body.mobile .top{align-items:center;gap:6px}
+body.mobile .date{margin-left:auto;font-size:12px}
+body.mobile #setb{margin:0 0 0 2px;padding:3px 7px;font-size:13px;line-height:1}
+body.mobile .chk{width:20px;height:20px}
+body.mobile .subs .sc{width:16px;height:16px}
+body.mobile .del,body.mobile .dueb,body.mobile .sb{opacity:.55}
+body.mobile .card:hover{transform:none}
+body.mobile .settings{left:8px;right:8px;width:auto!important;max-width:none}
+body.mobile .tabs .tab{padding:6px 14px 8px;font-size:15px}
+body.mobile .report{bottom:calc(14px + env(safe-area-inset-bottom))}
+body.mobile .daily{bottom:calc(14px + env(safe-area-inset-bottom))}
+body.mobile #moddock{bottom:calc(58px + env(safe-area-inset-bottom))}
+body.mobile .modtile{filter:none}
+.syncbox{display:flex;flex-direction:column;gap:5px;margin-top:6px;width:100%;font-size:12px;color:var(--dim);line-height:1.4}
+.syncbox input{background:#060910;color:var(--ink);border:0;padding:5px 7px;font:inherit;font-size:12px;outline:none}
+.syncbox .row{display:flex;gap:6px}
+.syncbox .row input{flex:1;min-width:0}
+.syncbox .btn{margin:0;padding:3px 9px}
+.syncbox b{color:var(--gold)}
+.syncbox .err{color:#e88}
+.srow.hold{cursor:default}
+.srow.hold>span:first-of-type{white-space:nowrap}
+.srow.hold .bd{flex:none;margin-left:auto;display:flex;align-items:center;position:relative;padding:6px 0;touch-action:none;cursor:ew-resize}
+.srow.hold .bd::before{content:"";position:absolute;left:10px;right:10px;top:50%;height:2px;margin-top:-1px;background:var(--line)}
+.srow.hold .bd b{position:relative;width:10px;height:10px;margin:0 5px;border-radius:50%;background:#0b0714;box-shadow:0 0 0 2px var(--line);cursor:pointer;transition:transform .1s steps(2)}
+.srow.hold .bd b:hover{transform:scale(1.25)}
+.srow.hold .bd b.past{background:var(--gold-d);box-shadow:0 0 0 2px var(--gold-d)}
+.srow.hold .bd.drag b.on{transform:scale(1.35)}
+.srow.hold .bd b.on{background:var(--gold);box-shadow:0 0 0 2px #f3d48a;animation:bump .3s steps(4)}
+.srow.hold em{min-width:42px;text-align:right}
+.syncbox .bcode{font-family:Consolas,"Courier New",monospace;font-size:13px;letter-spacing:1px}
+.syncbox a{color:#6fc3d9}
+.syncbox textarea{min-height:64px;background:#060910;color:var(--ink);border:0;padding:5px 7px;font:inherit;font-size:11px;outline:none;resize:vertical}
+.fbsteps{margin:2px 0;padding-left:18px}
+.fbsteps .btn{margin:2px 0 0;padding:1px 7px;font-size:11px}
+.qr{align-self:center;background:#fff;padding:8px;line-height:0}
+.qr:empty{display:none}
+.qr img,.qr canvas{display:block;image-rendering:pixelated}
+/* toast */
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);--c:var(--gold);background:#2a1c10;color:#f3d48a;padding:8px 14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9}
+.toast.show{opacity:1}
+
+/* ===== strip (Rusty-style dock) mode ===== */
+body.strip{background:#0b0714}
+.desk{display:none}
+body.strip .desk{display:flex;position:fixed;inset:0 380px 0 0;align-items:center;justify-content:center;color:#3c2d5c;font-size:13px;text-align:center;
+  background:radial-gradient(circle at 30% 40%,#1d1640,#0b0714 70%)}
+body.strip #app{position:fixed;right:0;top:0;bottom:0;width:380px;background:var(--bg);border-left:4px solid #3b2766;box-shadow:-8px 0 0 #0006}
+body.strip .top{padding:10px 12px 6px;gap:6px}
+body.strip .logo{font-size:16px}
+body.strip .xp{margin-left:0;width:100%}
+body.strip .xpbar{flex:1}
+body.strip .board{flex-direction:column;gap:6px;padding:6px 12px;overflow-y:auto;overflow-x:hidden}
+body.strip .col{flex:none;margin:4px}
+body.strip .colhead{padding:7px 8px;cursor:pointer}
+body.strip .colhead .tog{display:inline}
+body.strip .col.closed .list,body.strip .col.closed .add{display:none}
+body.strip .list{flex:none;max-height:none;overflow:visible;padding:6px 8px 2px}
+body.strip .card{margin:3px 3px 9px;padding:6px 6px 6px 5px;font-size:14px}
+body.strip .daily{left:14px;bottom:14px;flex-direction:column;gap:6px}
+body.strip .daily.open{right:14px}
+body.strip .board{padding-bottom:calc(64px + var(--dockh,0px))}
+body.strip #moddock{right:14px;bottom:58px}
+body.strip .daily ul{columns:1;width:100%}
+body.strip .modebtns .wide{display:none}
+</style>
+</head>
+<body>
+<div class="desk">тут твой рабочий стол / Figma / Telegram…<br>а задачник живёт полоской справа, на всю высоту</div>
+<div id="app">
+  <div class="top" data-tauri-drag-region>
+    <div class="logo" data-tauri-drag-region><span id="logoSpr"></span>ЗАДАЧНИК</div>
+    <span class="date" id="date" data-tauri-drag-region></span>
+    <button class="btn px" id="setb" title="Настройки">⚙</button>
+    <span class="winbtns"><button class="btn px" id="pinb" title="Поверх всех окон">⊤</button><button class="btn px" id="hideb" title="Спрятать (Ctrl+Alt+T)">✕</button></span>
+    <div class="xp" title="+1 опыт за задачу, 5 опыта = уровень"><small id="lvl">LVL</small><div class="xpbar px"><div class="xpfill" id="xp"></div></div><small id="xpt"></small></div>
+    <div class="settings px" id="settings"></div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="goals px" id="goals"></div>
+  <div class="board" id="board"></div>
+  <div class="cal" id="cal"></div>
+  <div class="daily px" id="daily"></div>
+  <div id="moddock"></div>
+  <button class="btn px report" id="repb" title="Собрать отчёт и скопировать в буфер"><span class="ri"></span><span class="rt">отчёт</span></button>
+</div>
+<div class="toast px" id="toast"></div>
+<div class="srcpop px" id="srcpop"></div>
+<div class="srcpop px" id="duepop"></div>
+<div class="eyepick px" id="eyepick"></div>
+<canvas id="fx"></canvas>
+<div id="crt"></div>
+
+<script>
+/* desktop shell bridge: Tauri exposes window.__TAURI__; map it onto the window.dock API */
+if(window.__TAURI__&&!window.dock){const{invoke}=window.__TAURI__.core,{listen}=window.__TAURI__.event;
+  window.dock={hide:()=>invoke("hide"),pin:()=>invoke("toggle_pin"),pinned:()=>invoke("pinned"),onPinned:fn=>listen("pinned",e=>fn(e.payload)),
+    cursor:()=>invoke("cursor"),copy:t=>invoke("copy",{text:t}),llm:body=>invoke("llm",{body}),legacy:()=>invoke("legacy_data"),
+    snapshot:j=>invoke("snapshot",{json:j}),takeInbox:()=>invoke("take_inbox"),fetchText:u=>invoke("fetch_text",{url:u}),
+    gconnect:a=>invoke("google_connect",a),gapi:(m,u,b)=>invoke("google_api",{method:m,url:u,body:b}),gstatus:()=>invoke("google_status"),gdisconnect:()=>invoke("google_disconnect")};
+  window.open=u=>{invoke("open_url",{url:String(u)});return null}}
+const SPR = {
+  inbox:["XXXXXXXX","X......X","X......X","X......X","XXX..XXX","X.XXXX.X","X......X","XXXXXXXX"],
+  possum:["X......X","XX....XX",".XXXXXX.","XX.XX.XX","XXXXXXXX",".XXXXXX.","..X..X..","...XX..."],
+  camp:["X.......","XXXXX...","XXXXXXX.","XXXXX...","X.......","X.......","X.......","XXX....."],
+  merch:["XXX..XXX","XXXXXXXX","XXXXXXXX",".XXXXXX.","..XXXX..","..XXXX..","..XXXX..","..XXXX.."],
+  plush:["XX....XX","XXXXXXXX",".XXXXXX.",".X.XX.X.",".XXXXXX.",".XX..XX.","..XXXX..","........"],
+  star:["...XX...","...XX...","XXXXXXXX",".XXXXXX.","..XXXX..",".XX..XX.","XX....XX","........"],
+  cal:["XXXXXXXX","X.X..X.X","XXXXXXXX","X......X","X.XX.X.X","X......X","X.X..X.X","XXXXXXXX"],
+  board:["XXX.XXX.","X.X.X.X.","XXX.X.X.","....XXX.","XXX.....","X.X.XXX.","XXX.X.X.","....XXX."],
+  sun:["...X....","X..X..X.",".XXXXX..","XXX.XXXX",".XXXXX..","X..X..X.","...X....","........"],
+};
+const spr=(n,color,s=18)=>`<svg class="spr" width="${s}" height="${s}" viewBox="0 0 8 8">${SPR[n].map((r,y)=>[...r].map((c,x)=>c==="X"?`<rect x="${x}" y="${y}" width="1" height="1" fill="${color}"/>`:"").join("")).join("")}</svg>`;
+
+const COLS=[
+  {id:"inbox", name:"Инбокс",  color:"#8d7bb8", icon:"inbox", lh:"#8b9bb0"},
+  {id:"possum",name:"Работа",  color:"#d9a334", icon:"possum", lh:"#e07a35"},
+  {id:"camp",  name:"Учёба",   color:"#9b6ce0", icon:"camp", lh:"#4fb0cf"},
+  {id:"merch", name:"Дом",     color:"#c4b347", icon:"merch", lh:"#c9a35a"},
+  {id:"plush", name:"Хобби",   color:"#d07fc4", icon:"plush", lh:"#c4566a"},
+  {id:"other", name:"Прочее",  color:"#b07f3e", icon:"star", lh:"#7f9d48"},
+];
+/* column names can be renamed per user (S.colNames, synced with the other settings); the defaults above are neutral */
+COLS.forEach(c=>{const base=c.name;Object.defineProperty(c,"name",{get(){try{return S.colNames?.[c.id]||base}catch{return base}}})});
+/* device-local settings that never sync (token, device tag) */
+const LOCAL=JSON.parse(localStorage.getItem("pixel-local")||"{}");LOCAL.dev??=Math.random().toString(36).slice(2,5);
+const saveLocal=()=>localStorage.setItem("pixel-local",JSON.stringify(LOCAL));saveLocal();
+let uid=1,FROM=null; // FROM: where new tasks are added (pc / phone / web); set once the shell is known, so the demo seed has none
+const T=(col,text,done=false,src="dl",when="до дейлика")=>({id:"t"+(uid++)+(LOCAL.sync?"-"+LOCAL.dev:""),col,text,done,src,when,added:Date.now(),...(FROM&&{from:FROM})});
+const SEED={ // demo data for a fresh install (made up, nothing personal)
+  tasks:[
+    T("possum","Разобрать почту"),
+    T("possum","Подготовить план на неделю",true),
+    T("possum","Созвон с командой",true),
+    T("possum","Отправить отчёт"),
+    T("camp","Пройти урок по английскому"),
+    T("camp","Конспект главы"),
+    T("camp","Повторить карточки",false,"dl","после дейлика"),
+    T("merch","Купить продукты",false,"dl","после дейлика"),
+    T("merch","Полить цветы",false,"dl","после дейлика"),
+    T("merch","Вынести мусор",false,"dl","после дейлика"),
+    T("merch","Оплатить интернет",true,"dl","после дейлика"),
+    T("plush","Нарисовать скетч",false,"dl","после дейлика"),
+    T("other","Записаться к врачу",false,"dl","после дейлика"),
+    T("other","Позвонить бабушке",false,"dl","после дейлика"),
+  ],
+  daily:[
+    "Посмотреть, что за приложение",
+    "Добавить пару своих задач",
+    "Отметить первую выполненную",
+  ],
+};
+const cc=c=>S.theme==="loop"?c.lh:c.color;
+const normTxt=t=>String(t||"").toLowerCase().replace(/[^\p{L}\p{N}]+/gu," ").trim();
+const SRC={yg:"YouGile",nt:"Notion @",dl:"дейлик",ob:"Obsidian",ai:"Клод",gc:"Календарь"};
+
+const APP=(!!window.__TAURI__||new URLSearchParams(location.search).has("app"))&&!!window.dock;
+const MOBILE=!APP&&(matchMedia("(max-width:640px)").matches||new URLSearchParams(location.search).has("mobile"));
+FROM=APP?"pc":window.Capacitor?.isNativePlatform?.()?"phone":"web";
+const KEY="pixel-tracker-v1";
+/* font choice (this device only, like the theme). Handjet and Andika come from Google Fonts on first use; their @font-face rules are
+   renamed and scaled with size-adjust so the layout keeps its proportions */
+const FONTS={pix:{name:"Pixelify"},handjet:{name:"Handjet",q:"Handjet:wght@400;600;700",sz:118},andika:{name:"Andika",q:"Andika:wght@400;700",sz:92,smooth:1}};
+const fontKey=()=>FONTS[S.font]?S.font:"pix";
+const FONT_BASE='"Pixelify Zadachnik", ui-monospace, monospace';
+const fontFamily=k=>FONTS[k]?.q?`'ZFont-${k}', ${FONT_BASE}`:FONT_BASE;
+/* @font-face rules for a font. Mods live in sandboxed frames that cannot fetch our files, so for them the bundled font goes as data: URLs;
+   Google's files are served to anyone, their rules work as they are */
+const fontCss={},toDataUrl=b=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.onerror=()=>r(null);f.readAsDataURL(b)});
+function loadFontCss(k,inline){const id=k+(inline?":inline":"");if(fontCss[id])return fontCss[id];const F=FONTS[k];
+  return fontCss[id]=(async()=>{
+    if(!F.q){if(!inline)return"";
+      const W=[[400,"Regular"],[600,"SemiBold"],[700,"Bold"]];
+      return (await Promise.all(W.map(async([w,n])=>{const u=await toDataUrl(await (await fetch(`fonts/PixelifyZadachnik-${n}.woff2`)).blob());
+        return u?`@font-face{font-family:"Pixelify Zadachnik";src:url(${u}) format("woff2");font-weight:${w};font-display:swap}`:""}))).join("\n")}
+    const ck="pixel-font-"+k;let css=localStorage.getItem(ck);
+    if(!css){css=await (await fetch("https://fonts.googleapis.com/css2?family="+F.q+"&display=swap")).text();if(/@font-face/.test(css))localStorage.setItem(ck,css)}
+    return css.replace(/font-family:\s*'[^']+';/g,`font-family:'ZFont-${k}';size-adjust:${F.sz}%;`)})().catch(e=>{delete fontCss[id];console.warn("font",e);return""})}
+async function applyFont(){const k=fontKey(),F=FONTS[k];
+  document.body.classList.toggle("f-alt",!!F.smooth);
+  document.documentElement.style.setProperty("--ff",fontFamily(k)); // falls back to Pixelify until the file arrives
+  if(F.q&&!document.getElementById("ZFont-"+k)){const css=await loadFontCss(k);if(css&&!document.getElementById("ZFont-"+k)){
+    const st=document.createElement("style");st.id="ZFont-"+k;st.textContent=css;document.head.appendChild(st)}}}
+let S=JSON.parse(localStorage.getItem(KEY)||"null")||{...structuredClone(SEED),mode:"board",closed:[],synced:0};
+S.theme??="loop";delete S.setv;delete S.setTab;delete S.setMore;S.xp??=S.tasks.filter(t=>t.done).length;S.archive??=[];S.eye??="cat";S.trail??=true;S.tasks.forEach(t=>{if(t.done&&!t.doneAt)t.doneAt=Date.now()});S.goals??="";S.goalsOpen??=true;S.crt??=true;
+uid=Math.max(uid,...S.tasks.map(t=>(parseInt(t.id.slice(1))||0)+1));
+S.exp??=[];
+const newSid=t=>t.id+"."+(t.sn=(t.sn||0)+1);
+S.tasks.forEach(t=>(t.subtasks||[]).forEach(x=>{if(!x.id)x.id=newSid(t)}));
+/* task or subtask by id ("t12" / "t12.3") */
+const findAny=id=>{for(const t of S.tasks){if(t.id===id)return t;for(const x of t.subtasks||[])if(x.id===id)return x}return null};
+const parentOf=x=>S.tasks.find(t=>t.subtasks?.includes(x));
+const isReady=t=>!t.done&&!!t.subtasks?.length&&t.subtasks.every(x=>x.done);
+S.gone??={};
+const META_KEYS=["goals","goalsWeek","daily","xp","unlocked","colNames"];
+const metaOf=()=>Object.fromEntries(META_KEYS.map(k=>[k,S[k]]));
+const taskHash=t=>JSON.stringify({...t,upd:0});
+const orderOf=()=>S.tasks.map(t=>t.id).join();
+let lastHash=new Map(S.tasks.map(t=>[t.id,taskHash(t)])),lastMeta=JSON.stringify(metaOf()),lastOrd=orderOf();
+function stamp(){const now=Math.max(Date.now(),(S.hlc||0)+1),seen=new Set();let used=false;
+  for(const t of S.tasks){seen.add(t.id);const h=taskHash(t);if(lastHash.get(t.id)!==h){t.upd=now;lastHash.set(t.id,h);used=true}}
+  for(const id of[...lastHash.keys()])if(!seen.has(id)){S.gone[id]=now;lastHash.delete(id);used=true}
+  for(const[id,ts]of Object.entries(S.gone))if(now-ts>30*864e5)delete S.gone[id];
+  const m=JSON.stringify(metaOf());if(m!==lastMeta){S.metaUpd=now;lastMeta=m;used=true}
+  const o=orderOf();if(o!==lastOrd){S.orderUpd=now;lastOrd=o;used=true}if(used)S.hlc=now}
+const save=()=>{stamp();localStorage.setItem(KEY,JSON.stringify(S));pushSnapshot();if(typeof SYNC!=="undefined")SYNC.soon();if(typeof GCAL!=="undefined")GCAL.soon()};
+function pushSnapshot(){if(!window.dock?.snapshot)return;clearTimeout(pushSnapshot.h);pushSnapshot.h=setTimeout(()=>{
+  const snap={updated:new Date().toISOString(),columns:COLS.map(c=>({id:c.id,name:c.name})),
+    tasks:S.tasks.map(t=>({id:t.id,column:t.col,text:t.text,done:!!t.done,source:SRC[t.src]||t.src,url:t.url||null,due:t.due||null,external_id:t.ext||null,description:t.description||null,assignees:t.assignees||[],
+      subtasks:(t.subtasks||[]).map(x=>({id:x.id,text:x.text,done:!!x.done,due:x.due||null,assignees:x.assignees||[],url:x.url||null})),added:t.added?new Date(t.added).toISOString():null})),
+    goals:goalList(),daily:S.daily};
+  window.dock.snapshot(JSON.stringify(snap,null,1)).catch(()=>{})},400)}
+const $=s=>document.querySelector(s);
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("show"),1800)}
+
+/* pupil reflects how full the day is: ~20 open tasks = narrow (as drawn), 1 left = about twice as wide */
+const dil=()=>{const n=S.tasks.filter(t=>!t.done).length;return Math.round(Math.max(0,Math.min(1,(20-n)/19))*2)/2};
+let lastDil=null;
+function render(){
+  if(APP||MOBILE)S.mode="strip";document.body.classList.toggle("mobile",MOBILE);
+  $("#setb").classList.toggle("on",!!S.setOpen);
+  renderGoals();renderTabs();if(S.view==="cal")renderCal();
+  document.body.classList.toggle("vcal",S.view==="cal");
+  document.body.classList.toggle("app",APP);
+  document.body.classList.toggle("strip",S.mode==="strip");
+  document.body.classList.toggle("loop",S.theme==="loop");
+  document.body.classList.toggle("crt",!!S.crt);document.body.classList.toggle("anim-fast",S.anim==="fast");document.body.classList.toggle("anim-off",S.anim==="off");renderSettings();if(typeof MODS!=="undefined")setTimeout(MODS.tick);$("#daily").classList.toggle("open",!!S.dailyOpen);
+  $("#board").innerHTML=COLS.map(c=>{
+    const ts=S.tasks.filter(t=>t.col===c.id);
+    const open=ts.filter(t=>!t.done).length;
+    return `<section class="col px ${S.closed.includes(c.id)?"closed":""}" style="--cc:${cc(c)}" data-col="${c.id}">
+      <div class="colhead">${spr(c.icon,cc(c))}<span>${c.name}</span><span class="cnt">${open}/${ts.length}</span><span class="tog">${S.closed.includes(c.id)?"▸":"▾"}</span></div>
+      <div class="list" data-col="${c.id}">${ts.map(card).join("")}</div>
+      <form class="add"><input class="px" placeholder="+ задача"></form>
+    </section>`}).join("");
+  $("#daily").innerHTML=`<h3 id="dailyT" title="Развернуть / свернуть">${spr("sun","#e0b13e",16)}Дейлик <span class="arr">${S.dailyOpen?"▾":"▴"}</span><small class="dcnt">${S.daily.length}</small></h3><ul>${S.daily.map((d,i)=>`<li><span>${esc(d)}</span><button data-di="${i}" title="Сделать задачей → Инбокс">→</button></li>`).join("")}</ul>`;
+  const done=S.tasks.filter(t=>t.done).length;
+  $("#xp").style.width=((S.xp||0)%XP_PER_LVL)/XP_PER_LVL*100+"%";$("#lvl").textContent="LVL "+lvl();
+  $("#xpt").textContent=`${(S.xp||0)%XP_PER_LVL}/${XP_PER_LVL}`;
+  if(dil()!==lastDil){const first=lastDil===null;lastDil=dil();if(!first&&typeof drawEye==="function")drawEye()}
+}
+/* ===== sync between devices: a private GitHub Gist holds one JSON; each side merges by task id + change time ===== */
+const GIST_NAME="zadachnik-sync.json",GIST_DESC="pixel-zadachnik sync (private)";
+const SAME=Symbol("same");
+const gistApi=async(p,opt={},etag)=>{const r=await fetch("https://api.github.com"+p,{...opt,cache:"no-store",headers:{Authorization:"Bearer "+LOCAL.sync.token,Accept:"application/vnd.github+json","Content-Type":"application/json",...(etag?{"If-None-Match":etag}:{})}});
+  if(r.status===304)return SAME;
+  if(r.status===403||r.status===429){const ra=Math.max(60,+r.headers.get("retry-after")||0);SYNC.pauseUntil=Date.now()+ra*1000;
+    throw new Error(`GitHub притормозил синк — продолжу через ${ra>=120?Math.round(ra/60)+" мин":ra+" с"}`)}
+  if(!r.ok)throw new Error(r.status===401?"токен не подходит":r.status===404?"гист не найден":"GitHub "+r.status);
+  const j=await r.json();if(!opt.method)GIST.etag=r.headers.get("ETag");return j};
+const GIST={
+  async find(){const list=await gistApi("/gists?per_page=100");const g=list.find(x=>x.files?.[GIST_NAME]);return g?.id||null},
+  async get(){if(!LOCAL.sync.gist){LOCAL.sync.gist=await this.find();saveLocal()}if(!LOCAL.sync.gist)return null;
+    const g=await gistApi("/gists/"+LOCAL.sync.gist,{},this.etag);if(g===SAME)return SAME;const f=g.files?.[GIST_NAME];if(!f)return null;
+    const txt=f.truncated?await(await fetch(f.raw_url)).text():f.content;return JSON.parse(txt)},
+  async put(doc){this.etag=null;const body=JSON.stringify({files:{[GIST_NAME]:{content:JSON.stringify(doc)}}});
+    if(LOCAL.sync.gist)return gistApi("/gists/"+LOCAL.sync.gist,{method:"PATCH",body});
+    const g=await gistApi("/gists",{method:"POST",body:JSON.stringify({description:GIST_DESC,public:false,files:{[GIST_NAME]:{content:JSON.stringify(doc)}}})});
+    LOCAL.sync.gist=g.id;saveLocal()}};
+const calAt=()=>Math.max(S.cal?.at||0,S.cal?.mcpAt||0);
+/* Firestore transport: one document boards/<sync code> holding the same JSON doc; onSnapshot = live push */
+const FB_VER="11.0.2",FB_BASE="https://www.gstatic.com/firebasejs/"+FB_VER+"/";
+const FB_RULES=`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /boards/{code} {
+      allow get: if code.size() >= 32;
+      allow write: if code.size() >= 32 && request.resource.data.doc is string && request.resource.data.doc.size() < 900000;
+    }
+  }
+}`;
+const FB={ref:null,fs:null,latest:undefined,ver:0,seen:-1,unsub:null,
+  async init(){const c=LOCAL.sync?.fb;if(!c)return;if(this.unsub){this.unsub();this.unsub=null}
+    const {initializeApp,getApps}=await import(FB_BASE+"firebase-app.js");this.fs=await import(FB_BASE+"firebase-firestore.js");
+    const app=getApps().find(a=>a.name==="zadachnik")||initializeApp(c.cfg,"zadachnik");
+    let db;try{db=this.fs.initializeFirestore(app,{experimentalAutoDetectLongPolling:true})}catch{db=this.fs.getFirestore(app)}
+    if(c.emu)try{this.fs.connectFirestoreEmulator(db,"127.0.0.1",c.emu)}catch{} // local test hook
+    this.ref=this.fs.doc(db,"boards",c.code);this.latest=undefined;this.ver++;
+    this.unsub=this.fs.onSnapshot(this.ref,snap=>{if(snap.metadata.hasPendingWrites)return;
+        try{this.latest=snap.exists()?JSON.parse(snap.data().doc):null}catch{this.latest=null}this.ver++;SYNC.run()},
+      err=>{SYNC.err=fbErr(err);if(S.setOpen)renderSettings()})},
+  async get(){if(!this.ref)await this.init();
+    if(this.latest===undefined){const sn=await this.fs.getDoc(this.ref);this.latest=sn.exists()?JSON.parse(sn.data().doc):null;this.ver++}
+    if(this.seen===this.ver)return SAME;this.seen=this.ver;return this.latest},
+  async put(d){await this.fs.setDoc(this.ref,{doc:JSON.stringify(d),at:Date.now()});this.latest=d;this.seen=++this.ver},
+  stop(){if(this.unsub)this.unsub();this.unsub=null;this.ref=null;this.latest=undefined}};
+const fbErr=e=>{const m=String(e?.code||e?.message||e);
+  return /permission/i.test(m)?"Firestore не пускает — проверь правила (шаг 3)":/not-found|NOT_FOUND|failed-precondition/i.test(m)?"в проекте не создана база Firestore (шаг 2)":/unavailable|offline/i.test(m)?"нет связи с Firebase":m.slice(0,90)};
+/* sync key = Firebase web config + random board code, so a second device needs just one string */
+const keyOf=c=>"ZDK1."+btoa(JSON.stringify({c:c.cfg,k:c.code})).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+function parseKey(t){t=String(t||"").trim();if(!t.startsWith("ZDK1."))return null;try{const j=JSON.parse(atob(t.slice(5).replace(/-/g,"+").replace(/_/g,"/")));
+  return j?.c?.apiKey&&j?.c?.projectId&&typeof j.k==="string"&&j.k.length>=32?{cfg:j.c,code:j.k}:null}catch{return null}}
+function parseFbConfig(t){const o={};for(const m of String(t||"").matchAll(/["']?(\w+)["']?\s*:\s*["']([^"']+)["']/g))o[m[1]]=m[2];
+  return o.apiKey&&o.projectId&&o.appId?{apiKey:o.apiKey,authDomain:o.authDomain||o.projectId+".firebaseapp.com",projectId:o.projectId,appId:o.appId}:null}
+const loadScript=src=>new Promise((ok,no)=>{const e=document.createElement("script");e.src=src;e.onload=ok;e.onerror=no;document.head.appendChild(e)});
+async function drawQR(el,text){try{if(!window.QRCode)await loadScript("https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js");
+  el.innerHTML="";new QRCode(el,{text,width:220,height:220,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.L})}catch{el.textContent="QR не загрузился — скопируй ключ"}}
+/* a fresh device still holding the demo board must not push demo tasks into the real one */
+function dropDemoBoard(){const demo=new Set(SEED.tasks.map(t=>t.text));if(S.tasks.every(t=>demo.has(t.text))&&!(S.archive||[]).length){
+  S.tasks=[];S.daily=[];S.gone={};S.metaUpd=0;S.orderUpd=0;S.xp=0;lastHash=new Map();lastMeta=JSON.stringify(metaOf());lastOrd=orderOf();localStorage.setItem(KEY,JSON.stringify(S))}}
+async function fbConnect(c){dropDemoBoard();GIST.etag=null;LOCAL.sync={fb:c};saveLocal();SYNC.lastCore=null;SYNC.err=null;SYNC.pauseUntil=0;
+  try{await FB.init()}catch(e){SYNC.err=fbErr(e)}await SYNC.run();syncLoop();render();toast(SYNC.err?"Синк: "+SYNC.err:"Firebase подключён ⇅");SFX.play(SYNC.err?"undo":"colclear")}
+const docOf=()=>({app:"pixel-zadachnik",v:1,at:Date.now(),cal:{events:S.cal?.events||[],mcp:S.cal?.mcp||[],at:calAt()},tasks:S.tasks,orderUpd:S.orderUpd||0,archive:(S.archive||[]).slice(-300),gone:S.gone,meta:metaOf(),metaUpd:S.metaUpd||0});
+const coreOf=d=>JSON.stringify([d.tasks,d.orderUpd||0,d.archive,d.gone,d.meta,d.metaUpd||0,d.cal||null]);
+/* pure merge: newer change wins per task; deletions win over older edits */
+function mergeDoc(loc,rem){const gone={...rem.gone,...loc.gone};for(const[k,v]of Object.entries(rem.gone||{}))gone[k]=Math.max(v,gone[k]||0);
+  const dead=(id,t)=>gone[id]!=null&&gone[id]>=(t.upd||0);
+  const L=new Map(loc.tasks.map(t=>[t.id,t])),R=new Map((rem.tasks||[]).map(t=>[t.id,t]));
+  const win=id=>{const l=L.get(id),r=R.get(id);return !l?r:!r?l:(r.upd||0)>(l.upd||0)?r:l};
+  const remFirst=(rem.orderUpd||0)>=(loc.orderUpd||0),base=remFirst?(rem.tasks||[]):loc.tasks,other=remFirst?loc.tasks:(rem.tasks||[]);
+  const out=[],used=new Set();
+  for(const t of base){used.add(t.id);const w=win(t.id);if(!dead(t.id,w))out.push(w)}
+  other.forEach((t,i)=>{if(used.has(t.id))return;used.add(t.id);const w=win(t.id);if(!dead(t.id,w))out.splice(Math.min(i,out.length),0,w)});
+  const arch=new Map([...(rem.archive||[]),...(loc.archive||[])].map(t=>[t.id,t]));
+  const meta=(rem.metaUpd||0)>(loc.metaUpd||0)?rem.meta:loc.meta;
+  return{tasks:out,orderUpd:Math.max(rem.orderUpd||0,loc.orderUpd||0),archive:[...arch.values()].slice(-300),gone,meta,metaUpd:Math.max(rem.metaUpd||0,loc.metaUpd||0)}}
+const SYNC={busy:false,err:null,at:0,wake:true,
+  dirty:false,
+  holdAt:0,
+  /* after ticking a task wait LOCAL.hold seconds: a quick "done → not done" never reaches the other devices */
+  soon(){if(!LOCAL.sync)return;this.dirty=true;clearTimeout(this.h);
+    const hold=(LOCAL.hold||0)*1000,w=hold&&Date.now()-this.holdAt<1500?hold:700;this.h=setTimeout(()=>this.run(),w)},
+  lastCore:null,pauseUntil:0,
+  async run(remote=LOCAL.sync?.fb?FB:GIST){if(!LOCAL.sync||this.busy||Date.now()<this.pauseUntil)return;this.busy=true;
+    try{stamp();const rem=await remote.get(),loc=docOf();
+      if(rem===SAME){if(coreOf(loc)===this.lastCore){this.dirty=false;this.busy=false;return}}
+      else if(rem){S.hlc=Math.max(S.hlc||0,rem.metaUpd||0,...(rem.tasks||[]).map(t=>t.upd||0),...Object.values(rem.gone||{}));
+        const dm0=doneMap(),ids0=new Set(S.tasks.map(t=>t.id));const m=mergeDoc(loc,rem),before=JSON.stringify(loc.tasks)+JSON.stringify(loc.meta);
+        S.tasks=m.tasks;S.archive=m.archive;S.gone=m.gone;Object.assign(S,m.meta);S.metaUpd=m.metaUpd;S.orderUpd=m.orderUpd;
+        lastHash=new Map(S.tasks.map(t=>[t.id,taskHash(t)]));lastMeta=JSON.stringify(metaOf());lastOrd=orderOf();
+        uid=Math.max(uid,...S.tasks.map(t=>(parseInt(t.id.slice(1))||0)+1));
+        localStorage.setItem(KEY,JSON.stringify(S));pushSnapshot();
+        const rc=rem.cal;let calNew=false;if(rc&&(rc.at||0)>calAt()){S.cal??={};S.cal.events=rc.events||[];S.cal.mcp=rc.mcp||[];S.cal.at=rc.at;S.cal.mcpAt=0;S.cal.err=null;calNew=true;localStorage.setItem(KEY,JSON.stringify(S))}
+        if(calNew||before!==JSON.stringify(S.tasks)+JSON.stringify(metaOf())){render();remoteFx(dm0,ids0)}}
+      const mine=docOf(),c=coreOf(mine);this.dirty=false;
+      if(!rem||rem===SAME||c!==coreOf(rem)){if(c!==this.lastCore||!rem){await remote.put(mine)}}
+      this.lastCore=c;this.err=null;this.at=Date.now()}
+    catch(e){this.err=LOCAL.sync?.fb?fbErr(e):String(e?.message||e).slice(0,90)}
+    this.busy=false;if(this.dirty)this.soon();if(S.setOpen)renderSettings()}};
+const doneMap=()=>{const m=new Map();for(const t of S.tasks){m.set(t.id,!!t.done);for(const x of t.subtasks||[])m.set(x.id,!!x.done)}return m};
+/* after a break (app opened / brought back) the board scrolls through what got done elsewhere and ticks it one by one */
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+/* resolves once the element has stopped moving on screen (smooth scroll finished), max ~1.6 s */
+const settle=el=>new Promise(res=>{let last=null,still=0,t0=performance.now();setTimeout(res,1700); // timer fallback: hidden pages get no animation frames
+  const f=()=>{const y=Math.round(el.getBoundingClientRect().top);still=y===last?still+1:0;last=y;
+    if(still>=4||performance.now()-t0>1600)res();else requestAnimationFrame(f)};requestAnimationFrame(f)});
+let replaying=false;
+async function replayDone(list){replaying=true;
+  const par=x=>x.col?x:parentOf(x);
+  // the order you see on screen: column by column, down the list; a card's subtasks first, then the card itself
+  const ord=x=>{const t=par(x);return COLS.findIndex(c=>c.id===t?.col)*1e7+S.tasks.indexOf(t)*100+(x.col?99:1+(t?.subtasks||[]).indexOf(x))};
+  list=list.filter(par).sort((p,q)=>ord(p)-ord(q)).slice(0,20);
+  const cardOf=x=>document.querySelector(`.card[data-id="${par(x).id}"]`);
+  const elOf=x=>x.col?cardOf(x):document.querySelector(`.subs li[data-sid="${x.id}"]`)||cardOf(x);
+  const opened=new Set();let rest=list.slice();
+  // render() redraws the board: put back what the replay is pretending (columns peeked into, items not ticked yet)
+  const restore=()=>{opened.forEach(id=>document.querySelector(`.col[data-col="${id}"]`)?.classList.remove("closed"));
+    rest.forEach(x=>{const el=elOf(x);if(el&&(x.col||el.tagName==="LI"))el.classList.remove("done")})};
+  const redraw=()=>{render();restore()};
+  restore();                                                                     // pretend they are still open…
+  await wait(350);
+  let unfolded=null;                                                             // a card the replay opened to show its subtasks
+  const fold=async()=>{if(!unfolded)return;const id=unfolded;unfolded=null;
+    const c=document.querySelector(`.card[data-id="${id}"]`);if(c){c.scrollIntoView({block:"center",behavior:"smooth"});await wait(60);await settle(c)}
+    SFX.play("pick");S.exp=S.exp.filter(z=>z!==id);await animDet(id,false,redraw);await wait(60)};
+  for(const x of list){const t=par(x);
+    if(unfolded&&unfolded!==t.id)await fold();
+    if(S.closed.includes(t.col)&&!opened.has(t.col)){opened.add(t.col);restore();SFX.play("pick");await wait(200)} // peek into a collapsed column
+    if(!x.col&&!S.exp.includes(t.id)){                                           // open the card so the subtask is visible
+      const c=cardOf(x);if(c){c.scrollIntoView({block:"center",behavior:"smooth"});await wait(60);await settle(c)}
+      S.exp=[...S.exp,t.id];unfolded=t.id;SFX.play("pick");animDet(t.id,true,()=>{redraw();return document.querySelector(`.card[data-id="${t.id}"]`)});await wait(300)}
+    const el=elOf(x);rest=rest.filter(z=>z!==x);if(!el||!el.isConnected)continue;
+    el.scrollIntoView({block:"center",behavior:"smooth"});await wait(60);await settle(el);await wait(140);
+    if(x.col||el.tagName==="LI")el.classList.add("done");(el.closest(".card")||el).classList.add("pop");          // …and tick them in order
+    const c=x.col?el.querySelector(".chk"):el.tagName==="LI"?el.querySelector(".sc"):el.querySelector(".prog")||el.querySelector(".chk");
+    if(c){const[cx,cy]=center(c);FX.burst(cx,cy,[colColor(t.col),"#f3d48a","#fff4cf"])}
+    SFX.play("complete",{col:t.col});await wait(300)}
+  await wait(250);await fold();
+  if(list.length)eyeReact();
+  await wait(500);opened.clear();rest=[];render();                                // fold peeked columns back
+  replaying=false}
+function remoteFx(dm0,ids0){const on=[],off=[];let added=0;
+  for(const t of S.tasks){if(!ids0.has(t.id)){added++;continue}const chk=x=>{const a=dm0.get(x.id),b=!!x.done;if(a===undefined||a===b)return;(b?on:off).push(x)};chk(t);(t.subtasks||[]).forEach(chk)}
+  const wake=SYNC.wake;SYNC.wake=false;
+  if(on.length&&!replaying&&S.view!=="cal"){replayDone(on);
+    toast(`⇅ ${wake?"пока тебя не было":"с другого устройства"}: ${on.length===1?"✓ «"+on[0].text.slice(0,36)+"»":"✓ "+on.length}${off.length?", снято "+off.length:""}${added?", +"+added+" новых":""}`);return}
+  if(on.length){const x=on[0],t=x.col?x:parentOf(x);if(t){SFX.play("complete",{col:t.col});eyeReact();
+      let el=document.querySelector(x.col?`.card[data-id="${x.id}"] .chk`:`.subs li[data-sid="${x.id}"] .sc`);if(!el||!el.getBoundingClientRect().width)el=document.querySelector(`.col[data-col="${t.col}"] .colhead`);
+      if(el){const[cx,cy]=center(el);FX.burst(cx,cy,[colColor(t.col),"#f3d48a","#fff4cf"])}document.querySelector(`.card[data-id="${x.id}"]`)?.classList.add("pop")}}
+  else if(off.length)SFX.play("undo");else if(added)SFX.play("sync");
+  const msg=[on.length&&(on.length===1?`✓ «${on[0].text.slice(0,40)}»`:`✓ ${on.length}`),off.length&&(off.length===1?`снята отметка «${off[0].text.slice(0,30)}»`:`снято ${off.length}`),added&&`+${added} новых`].filter(Boolean).join(", ");
+  if(msg)toast("⇅ "+msg)}
+let keyShown=false; // the key opens on request only, so screenshots of the settings are safe
+function syncBox(){const L=LOCAL.sync;
+  if(L?.fb)return `<div class="syncbox"><div><b>⇅ Firebase</b> · доска <b class="bcode" title="Должна совпадать на всех устройствах">${keyShown?esc(L.fb.code.slice(-4).toUpperCase()):"••••"}</b> · ${SYNC.busy?"синхронизирую…":SYNC.err?`<span class="err">${esc(SYNC.err)}</span>`:SYNC.at?"последняя "+new Date(SYNC.at).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit",second:"2-digit"}):"подключаюсь…"}</div>
+    ${keyShown?`<div><b>Ключ для другого устройства</b>: на телефоне ⚙ → синхронизация → «у меня есть ключ». Отсканируй QR камерой и скопируй текст, или отправь ключ себе в Telegram.</div>
+    <div class="qr" id="fbQR"></div>
+    <div class="row"><input id="fbKeyOut" readonly value="${esc(keyOf(L.fb))}"><button class="btn px" id="fbKeyCopy">копировать</button><button class="btn px" id="keyHide">скрыть</button></div>`
+    :`<div class="row"><button class="btn px" id="keyShow" title="Ключ, код доски и QR скрыты, чтобы их не было видно на скриншотах">🔒︎ показать ключ и QR</button></div>`}
+    <div class="row"><button class="btn px" id="syncNow">синхронизировать</button><button class="btn px" id="syncOff">отключить</button></div></div>`;
+  if(!L&&S.syncWay!=="gist")return `<div class="syncbox">
+    <div><b>У меня есть ключ</b> (уже настроено на другом устройстве):</div>
+    <div class="row"><input id="fbKeyIn" placeholder="ZDK1.…" autocomplete="off"><button class="btn px" id="fbKeyGo">подключить</button></div>
+    <div style="margin-top:6px"><b>Первое устройство — настроить Firebase</b> (бесплатно, один раз):</div>
+    <ol class="fbsteps"><li><a href="#" data-href="https://console.firebase.google.com/">Firebase</a> → Add project → можно выбрать уже созданный «Zadachmik» → Analytics не нужен.</li>
+      <li>Build → <b>Firestore Database</b> → Create database → локация любая (например eur3) → Production mode.</li>
+      <li>Вкладка <b>Rules</b> → замени всё на это → Publish: <button class="btn px" id="fbRulesCopy">копировать правила</button></li>
+      <li>⚙ Project settings → Your apps → значок <b>&lt;/&gt;</b> (Web) → имя любое → Register → скопируй блок <b>firebaseConfig</b> сюда:</li></ol>
+    <textarea id="fbCfgIn" placeholder="const firebaseConfig = { apiKey: …, projectId: …, appId: … }"></textarea>
+    <div class="row"><button class="btn px" id="fbCfgGo">подключить и создать ключ</button></div>
+    <div><a href="#" id="syncGist">или через GitHub (старый способ)</a></div></div>`;
+  return `<div class="syncbox">${L?`<div><b>⇅ включена (GitHub)</b> · ${SYNC.busy?"синхронизирую…":SYNC.err?`<span class="err">${esc(SYNC.err)}</span>`:SYNC.at?"последняя "+new Date(SYNC.at).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):"ещё не было"}</div>
+    <div class="row"><button class="btn px" id="syncNow">синхронизировать</button><button class="btn px" id="syncOff">отключить</button></div>`:
+    `<div>Задачи живут в приватном гисте на твоём GitHub. На компе и на телефоне вставь один и тот же токен — дальше всё само.</div>
+    <div>Токен: github.com → Settings → Developer settings → Personal access tokens → Fine-grained → доступ <b>Gists: read and write</b>.</div>
+    <div class="row"><input id="syncTok" type="password" placeholder="github_pat_…" autocomplete="off"><button class="btn px" id="syncOn">подключить</button></div>
+    <div>Токен хранится только на этом устройстве и не попадает в экспорт.</div><div><a href="#" id="syncFb">← лучше через Firebase</a></div>`}</div>`}
+function syncLoop(){clearInterval(syncLoop.h);let n=0;syncLoop.h=setInterval(()=>{n++;if(document.visibilityState==="visible"||n%7===0)SYNC.run()},3000)}
+if(LOCAL.sync){if(LOCAL.sync.fb)FB.init().catch(e=>{SYNC.err=fbErr(e)});setTimeout(()=>SYNC.run(),800);syncLoop()}
+addEventListener("focus",()=>SYNC.run());document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){SYNC.wake=true;setTimeout(()=>{SYNC.wake=false},8000);SYNC.run()}});
+setTimeout(()=>{SYNC.wake=false},10000);
+
+/* ===== settings: grouped shelves built from one list of items ===== */
+function setSpec(){return[
+  {g:"вид",items:[
+    ...(APP||MOBILE?[]:[{at:'data-mode="board"',ic:"▦",l:"доска",on:S.mode==="board"},{at:'data-mode="strip"',ic:"▮",l:"полоска",on:S.mode==="strip"}]),
+    {id:"theme",ic:"◐",l:"тема",v:S.theme==="loop"?"луп":"фиолет"},
+    {id:"animb",ic:"≋",l:"анимации",v:ANIMS[S.anim]||ANIMS.smooth,t:"Раскрытие карточек, настроек и дейлика: плавно, быстро или сразу, без анимации"},
+    {id:"fontb",ic:"Аа",l:"шрифт",v:FONTS[S.font]?.name||FONTS.pix.name,t:"Pixelify — пиксельный, Handjet — узкий пиксельный, Andika — простой шрифт для лёгкого чтения (дислексия)"},
+    {id:"crtb",ic:"▤",l:"CRT-фильтр",on:!!S.crt},
+    {id:"trailb",ic:"✦",l:"трейл зрачка",on:!!S.trail}]},
+  {g:"звук",items:[
+    {id:"mute",ic:"♪",l:"звук",on:!S.mute},
+    {id:"ambb",ic:"≈",l:"эмбиент",on:!!S.amb},
+    {id:"monob",ic:S.mono?"◑":"◐",l:"панорама",v:S.mono?"моно":"стерео"}]},
+  {g:"данные",items:[
+    {id:"md",ic:"⎘",l:"копия для Obsidian",a:1},
+    {id:"expb",ic:"⇪",l:"экспорт данных",a:1},
+    {id:"impb",ic:"⇩",l:"импорт данных",a:1},
+    {id:"syncb",ic:"⇅",l:"синхронизация",v:LOCAL.sync?(SYNC.err?"ошибка":LOCAL.sync.fb?"Firebase":"GitHub"):"выкл"},
+    ...(LOCAL.sync?[{beads:1}]:[]),
+    {id:"clearb",ic:"▧",l:"сделанные в архив",a:1}]},
+  ...(typeof MODS!=="undefined"?[{g:"моды",items:MODS.items()}]:[]),
+  {g:"ещё",items:[
+    {code:1},
+    ...((S.unlocked||[]).length?[{id:"wipeb",ic:"✕",l:"стереть секреты",a:1}]:[]),
+    {id:"nukeb",ic:"☠",l:"полный сброс",a:1,danger:1}]}]}
+const HOLDS=[0,2,5,10];
+const holdRow=()=>{const v=LOCAL.hold||0,k=HOLDS.indexOf(v);return `<div class="srow hold" data-tauri-drag-region="false" title="Сколько секунд отметка должна продержаться, прежде чем уйти на другие устройства. Быстрое «отметил → передумал» там не мигнёт."><i>⧗</i><span>пауза синка</span>
+  <span class="bd">${HOLDS.map((x,i)=>`<b data-hold="${x}" class="${i===k?"on":i<k?"past":""}" title="${x?x+" с":"сразу"}"></b>`).join("")}</span><em>${v?v+" с":"сразу"}</em></div>`};
+/* drag (or tap) along the beads: the nearest bead lights up, saved on release */
+document.addEventListener("pointerdown",e=>{const bd=e.target.closest(".srow.hold .bd");if(!bd)return;
+  e.preventDefault();e.stopPropagation();bd.setPointerCapture(e.pointerId);bd.classList.add("drag");
+  const beads=[...bd.querySelectorAll("b")],row=bd.closest(".srow");let cur=LOCAL.hold||0,ck=Math.max(0,HOLDS.indexOf(cur));
+  const pick=x=>{let k=0,best=1e9;beads.forEach((b,i)=>{const r=b.getBoundingClientRect(),d=Math.abs(r.left+r.width/2-x);if(d<best){best=d;k=i}});
+    const v=HOLDS[k];if(v===cur)return;cur=v;
+    const d=k>ck?1:-1;for(let i=ck+d,n=0;d>0?i<=k:i>=k;i+=d,n++)setTimeout(()=>SFX.play("bead",{k:i}),n*55);ck=k; // toward 10 s the notes go down, toward "сразу" up
+    beads.forEach((b,i)=>b.className=i===k?"on":i<k?"past":"");row.querySelector("em").textContent=v?v+" с":"сразу"};
+  pick(e.clientX);
+  const mv=ev=>pick(ev.clientX),up=()=>{bd.removeEventListener("pointermove",mv);bd.removeEventListener("pointerup",up);bd.removeEventListener("pointercancel",up);
+    bd.classList.remove("drag");LOCAL.hold=cur;saveLocal();setHtml="";renderSettings()};
+  bd.addEventListener("pointermove",mv);bd.addEventListener("pointerup",up);bd.addEventListener("pointercancel",up)},true);
+const sAttr=it=>it.id?`id="${it.id}"`:it.at;
+const codeIn=`<input class="code setcode" placeholder="секретный код…" maxlength="16" autocomplete="off" title="Секретные коды (и «сброс»)">`;
+let setHtml="",setWasOpen=false,setOpenAt=0;
+function renderSettings(){const G=setSpec();
+  let h=G.map(g=>`<div class="sg"><h5>${g.g}</h5>${g.items.map(it=>it.code?`<div class="srow"><i>?</i>${codeIn}</div>`:it.beads?holdRow():
+    `<button class="srow ${it.danger?"danger":""}" ${sAttr(it)}${it.t?` title="${esc(it.t)}"`:""}><i>${it.ic}</i><span>${it.l}</span>${it.on!=null?`<em class="sw ${it.on?"on":""}"></em>`:it.v?`<em>${it.v}</em>`:'<em class="sa">›</em>'}</button>`).join("")}</div>`).join("");
+  if(S.syncOpen)h+=syncBox();
+  if(S.impOpen)h+=`<div class="imp"><textarea id="impTa" placeholder="вставь сюда скопированный экспорт…"></textarea><button class="btn px" id="impGo">заменить всё этим</button></div>`;
+  const el=$("#settings");if(S.setOpen&&!setWasOpen){setOpenAt=performance.now();setTimeout(()=>el.classList.remove("opening"),600)}setWasOpen=!!S.setOpen;
+  el.className=`settings px va ${S.setOpen?"open":""} ${S.setOpen&&performance.now()-setOpenAt<550?"opening":""}`;
+  if(h!==setHtml){setHtml=h;el.innerHTML=h}
+  const q=$("#fbQR");if(q&&!q.dataset.done&&LOCAL.sync?.fb){q.dataset.done=1;drawQR(q,keyOf(LOCAL.sync.fb))}}
+const weekId=(d=new Date())=>{const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);const y=new Date(Date.UTC(x.getUTCFullYear(),0,1));return x.getUTCFullYear()+"-W"+Math.ceil(((x-y)/864e5+1)/7)};
+const goalList=()=>(S.goals||"").split("\n").map(x=>x.replace(/^\s*\d+[.)]\s*/,"").replace(/^[-•*]\s*/,"").trim()).filter(Boolean);
+let editingGoals=false;
+function renderGoals(){
+  const g=$("#goals"),list=goalList(),stale=list.length&&S.goalsWeek!==weekId();
+  if(editingGoals){g.innerHTML=`<h4>${spr("star","#e7c56a",14)}Цели недели</h4><textarea id="goalsTa" placeholder="Вставь цели недели, по одной на строку">${esc(S.goals||"")}</textarea><button class="edit" id="goalsSave" title="Сохранить">✓</button>`;return}
+  g.classList.toggle("closed",!S.goalsOpen);
+  if(!S.goalsOpen){g.innerHTML=`<h4 id="goalsT" title="Развернуть">${spr("star","#e7c56a",14)}Цели недели <span class="arr">▸</span><small class="dcnt">${list.length}</small>${stale?'<span class="stale">обнови?</span>':""}</h4>`;return}
+  g.innerHTML=`<h4 id="goalsT" title="Свернуть">${spr("star","#e7c56a",14)}Цели недели <span class="arr">▾</span>${stale?'<span class="stale" title="Цели с прошлой недели">обнови?</span>':""}</h4>`+
+    (list.length?`<ol>${list.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>`:`<span class="empty">Вставь цели в начале недели ✎</span>`)+
+    `<button class="edit" id="goalsEdit" title="Редактировать">✎</button>`;
+}
+// local model that rewrites the template report in the owner's voice (Ollama; falls back to the template)
+const LLM_MODEL="qwen2.5:7b";
+const LLM_SYSTEM=`Ты редактор ежедневных отчётов для руководителя (Telegram). Тебе дают ЧЕРНОВИК (сухой список задач по проектам) и ЗАМЕТКИ ДНЯ. Твоя задача: переписать формулировки пунктов живым языком от первого лица. Структуру, нумерацию и состав блоков сохраняй как в черновике.
+
+Как переписывать:
+- «Я за сегодня»: каждый пункт - действие в прошедшем времени: «Посмотрел ролики», «Узнал у куратора, всё ли ок с первыми роликами», «Отдал ролики монтажёру в работу», «Поставил разработчику задачу по кнопке download».
+- «Не сделано»: что не успел, через « - » оставь [причина].
+- «План на завтра»: инфинитив или «сделать ...»: «Сделать новый рендер», «Сравнить новый и старый рендер».
+- Если в заметках дня есть явно сделанная работа, которой нет в черновике, добавь её отдельными пунктами в конец «Я за сегодня».
+- Пояснения через « - ». Никаких длинных тире. Подпункты 1.1, 1.2. Коротко, по сути.
+- Не выдумывай факты. Не добавляй блоков, которых нет в черновике. Не пиши «...».
+- Выводи ТОЛЬКО отчёт: без вступления, без заметок, без code block.
+
+Пример.
+ЧЕРНОВИК:
+Я за сегодня
+1. Проект А
+1.1. Ролики просмотреть
+1.2. Задача разработчику по кнопке download
+2. Проект Б: Баннер
+
+План на завтра
+1. Проект Б: Новый рендер
+ЗАМЕТКИ ДНЯ:
+- Загрузил PSD + материалы на диск
+ОТВЕТ:
+Я за сегодня
+1. Проект А
+1.1. Посмотрел ролики
+1.2. Поставил разработчику задачу по кнопке download
+2. Проект Б: доделал баннер
+3. Загрузил PSD и материалы на диск
+
+План на завтра
+1. Проект Б: сделать новый рендер`;
+const REPORT_BLOCKS=["Цели на неделю","Я за сегодня","Не сделано","План на завтра"];
+function tidyReport(txt,draft){ // keep only known blocks, in the right order; goals come verbatim from the draft
+  const parse=t=>{const m={};let cur=null;t.split("\n").forEach(l=>{const h=REPORT_BLOCKS.find(b=>l.trim().replace(/:$/,"")===b);if(h){cur=h;m[h]=[];return}
+    if(/^(заметки|черновик|ответ)/i.test(l.trim()))cur=null;else if(cur&&l.trim()&&!/^\d+(\.\d+)*\.?\s*\.{3}$/.test(l.trim()))m[cur].push(l.trimEnd())});return m};
+  const ai=parse(txt),dr=parse(draft);
+  if(dr["Цели на неделю"])ai["Цели на неделю"]=dr["Цели на неделю"];else delete ai["Цели на неделю"];
+  REPORT_BLOCKS.forEach(b=>{if(!dr[b]&&b!=="Я за сегодня")delete ai[b]});
+  REPORT_BLOCKS.forEach(b=>{if(dr[b]&&!(ai[b]&&ai[b].length))ai[b]=dr[b]}); // model dropped a block → keep the draft's
+  const out=REPORT_BLOCKS.filter(b=>ai[b]&&ai[b].length).map(b=>b+"\n"+ai[b].join("\n")).join("\n\n");
+  return out||draft;
+}
+async function llmReport(draft){
+  const user=`ЧЕРНОВИК:\n${draft}\nЗАМЕТКИ ДНЯ:\n${S.daily.map(d=>"- "+d).join("\n")||"нет"}\nОТВЕТ:`;
+  const body={model:LLM_MODEL,stream:false,keep_alive:"30m",options:{temperature:.3},messages:[{role:"system",content:LLM_SYSTEM},{role:"user",content:user}]};
+  const out=window.dock?.llm?await window.dock.llm(body):await fetch("http://127.0.0.1:11434/api/chat",{method:"POST",body:JSON.stringify(body)}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(j=>j.message.content);
+  return tidyReport(out.replace(/^```\w*\n?|```$/g,"").replace(/[—–]/g,"-").replace(/⇒/g,"-").trim(),draft);
+}
+function claudePrompt(draft){return `Клод, перепиши мой ежедневный отчёт для руководителя (Telegram). Формат строго такой: блоки «Цели на неделю», «Я за сегодня», «Не сделано» (с причиной через « - »), «План на завтра»; пустые блоки убери. «Я за сегодня» - от первого лица, в прошедшем времени («Сделал», «Отправил»). Подпункты 1.1, 1.2, без длинных тире, коротко и по сути, ничего не выдумывай: где причина неизвестна, оставь [причина]. Если в заметках есть сделанная работа, добавь её в «Я за сегодня». Отдай только текст отчёта одним блоком.
+
+ЧЕРНОВИК:
+${draft}
+
+ЗАМЕТКИ ДНЯ:
+${S.daily.map(d=>"- "+d).join("\n")||"нет"}`}
+async function copyText(t){if(window.dock?.copy){window.dock.copy(t);return}await navigator.clipboard.writeText(t)}
+// report in the daily-report-ilya format
+function buildReport(){
+  const today=new Date().toDateString(),clean=x=>x.replace(/[—–]/g,"-").replace(/→/g,"-").replace(/\s+/g," ").trim();
+  const block=(title,lines)=>lines.length?title+"\n"+lines.join("\n"):"";
+  const dueTxt=t=>t.due&&!t.done?" - до "+new Date(t.due+"T00:00:00").toLocaleDateString("ru-RU",{day:"2-digit",month:"2-digit"}):"";
+  const group=(list,suffix="")=>{const out=[];let n=0;COLS.forEach(c=>{const ts=list.filter(t=>t.col===c.id);if(!ts.length)return;n++;
+    if(ts.length===1)out.push(`${n}. ${c.name}: ${clean(ts[0].text)}${dueTxt(ts[0])}${suffix}`);
+    else{out.push(`${n}. ${c.name}`);ts.forEach((t,i)=>out.push(`${n}.${i+1}. ${clean(t.text)}${dueTxt(t)}${suffix}`))}});return out};
+  const done=[...S.tasks,...(S.archive||[])].filter(t=>t.done&&t.doneAt&&new Date(t.doneAt).toDateString()===today);
+  const open=S.tasks.filter(t=>!t.done&&t.col!=="inbox");
+  return [
+    block("Цели на неделю",goalList().map((x,i)=>`${i+1}. ${clean(x)}`)),
+    block("Я за сегодня",group(done)),
+    block("Не сделано",group(open.filter(t=>t.when==="до дейлика")," - [причина]")),
+    block("План на завтра",group(open.filter(t=>t.when!=="до дейлика"))),
+  ].filter(Boolean).join("\n\n");
+}
+/* deadlines: t.due = "YYYY-MM-DD" */
+const dueDays=d=>{const a=new Date(d+"T00:00:00"),b=new Date();b.setHours(0,0,0,0);return Math.round((a-b)/864e5)};
+const dueLabel=d=>{const n=dueDays(d);if(n<0)return n===-1?"вчера":`${-n} дн. назад`;if(n===0)return"сегодня";if(n===1)return"завтра";
+  return new Date(d+"T00:00:00").toLocaleDateString("ru-RU",{day:"numeric",month:"short"}).replace(".","")};
+const dueCls=d=>{const n=dueDays(d);return n<0?"late":n===0?"today":n<=2?"soon":""};
+const gcalUrl=t=>{const a=t.due.replace(/-/g,""),e=new Date(t.due+"T00:00:00");e.setDate(e.getDate()+1);
+  const b=e.getFullYear()+String(e.getMonth()+1).padStart(2,"0")+String(e.getDate()).padStart(2,"0");
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(t.text)+"&dates="+a+"/"+b+
+    "&details="+encodeURIComponent("Дедлайн из пиксельного задачника"+(t.url?"\n"+t.url:""))};
+const subProg=t=>{const a=t.subtasks||[];if(!a.length)return"";const d=a.filter(x=>x.done).length,n=Math.min(a.length,10),f=Math.round(d/a.length*n);
+  return `<span class="prog" title="Подзадачи: ${d} из ${a.length}">${Array.from({length:n},(_,i)=>`<i class="${i<f?"f":""}"></i>`).join("")}<b>${d}/${a.length}</b></span>`};
+const whoTxt=a=>a?.length?`<span class="who" title="Исполнители">@${esc(a.join(", "))}</span>`:"";
+const dueBadge=(x,done)=>x.due?`<span class="due ${done?"":dueCls(x.due)}" data-due="${x.id}" title="Дедлайн ${x.due}">⏳ ${dueLabel(x.due)}</span>`:"";
+const hostOf=u=>{try{return new URL(u).hostname.replace(/^www\./,"")}catch{return"ссылка"}};
+const FROMS={pc:"добавлена с ПК",phone:"добавлена с телефона",web:"добавлена на сайте",ai:"добавил Клод"};
+const det=t=>{const a=t.subtasks||[];return `<div class="det">
+  ${t.ext||t.assignees?.length||t.url||FROMS[t.from]?`<div class="dhead">${t.ext?`<span class="ext">${esc(t.ext)}</span>`:""}${FROMS[t.from]?`<span class="from" title="Где задача появилась">${FROMS[t.from]}</span>`:""}${whoTxt(t.assignees)}${t.url?`<a class="open" href="#" data-href="${esc(t.url)}" title="${esc(t.url)}">↗︎ ${esc(hostOf(t.url))}</a>`:""}</div>`:""}
+  <textarea class="desc" data-desc="${t.id}" rows="2" placeholder="описание…">${esc(t.description||"")}</textarea>
+  <ul class="subs">${a.map(x=>`<li class="${x.done?"done":""} ${!x.done&&x.due?dueCls(x.due):""}" data-sid="${x.id}"><span class="sc" title="Готово"></span><div class="swr"><div class="st">${esc(x.text)}</div>
+    <div class="sm">${dueBadge(x,x.done)}${whoTxt(x.assignees)}${x.url?`<a class="open" href="#" data-href="${esc(x.url)}" title="${esc(x.url)}">↗︎</a>`:""}${x.due?"":`<button class="sb" data-due="${x.id}" title="Дедлайн">⏳</button>`}<button class="sb" data-promote="${x.id}" title="Вынести в отдельную задачу">⇱</button><button class="sb" data-sdel="${x.id}" title="Удалить подзадачу">✕</button></div></div></li>`).join("")}</ul>
+  <form class="subadd" data-for="${t.id}"><input placeholder="+ подзадача" autocomplete="off"></form>
+  <div class="mv">в:${COLS.filter(c=>c.id!==t.col).map(c=>`<button data-move="${c.id}" style="--cc2:${cc(c)}">${c.name}</button>`).join("")}</div>
+</div>`};
+/* unfold / fold a card's details without animating layout (that stutters on phones): only this card is redrawn and gets its
+   final size at once; everything below it slides from where it was with transform, and the details fade in under it */
+const detBusy=new Set();
+function redrawCard(id){const t=S.tasks.find(z=>z.id===id),el=document.querySelector(`.card[data-id="${id}"]`);if(!t||!el)return null;
+  const tmp=document.createElement("div");tmp.innerHTML=card(t);const n=tmp.firstElementChild;el.replaceWith(n);return n}
+function below(el){const b=el.getBoundingClientRect().bottom-1,out=[];   // what sits under the card: later cards, the add field, later columns
+  for(let n=el;n&&n.id!=="board";n=n.parentElement)for(let x=n.nextElementSibling;x;x=x.nextElementSibling)if(x.getBoundingClientRect().top>=b)out.push(x);
+  return out}
+/* S.anim (this device only): smooth | fast | off */
+const ANIMS={smooth:"плавно",fast:"быстро",off:"выкл"};
+async function animDet(id,open,swap){const el=document.querySelector(`.card[data-id="${id}"]`),A=ANIMS[S.anim]?S.anim:"smooth",k=A==="fast"?.5:1;
+  if(!el||!el.animate||A==="off"){swap();return}
+  if(open){const h0=el.offsetHeight,n=swap();if(!n?.animate)return;const d=n.querySelector(".det"),dh=n.offsetHeight-h0,ms=(MOBILE?240:300)*k,ez="cubic-bezier(.2,.8,.2,1)";
+    below(n).forEach(x=>x.animate([{transform:`translateY(${-dh}px)`},{transform:"none"}],{duration:ms,easing:ez}));
+    if(d){d.animate([{opacity:0},{opacity:1}],{duration:ms,easing:ez});
+      if(A==="smooth")[...d.querySelectorAll(".dhead,.desc,.subs li,.subadd,.mv")].slice(0,7).forEach((r,i)=>r.animate([{opacity:0,transform:"translateY(5px)"},{opacity:1,transform:"none"}],
+        {duration:260,delay:40+i*30,easing:ez,fill:"backwards"}))}
+    return}
+  const d=el.querySelector(".det");if(!d){swap();return}
+  const dh=d.offsetHeight+parseFloat(getComputedStyle(d).marginTop||0),ms=(MOBILE?180:220)*k,ez="cubic-bezier(.5,0,.8,.4)";
+  const fol=below(el).map(x=>x.animate([{transform:"none"},{transform:`translateY(${-dh}px)`}],{duration:ms,easing:ez,fill:"forwards"}));
+  await d.animate([{opacity:1},{opacity:0}],{duration:ms,easing:ez,fill:"forwards"}).finished.catch(()=>{});
+  swap();fol.forEach(x=>x.cancel())}                                          // the layout catches up in the same frame the slide ends
+function toggleExp(id){if(detBusy.has(id))return;detBusy.add(id);SFX.play("pick");
+  const open=!S.exp.includes(id);S.exp=open?[...S.exp,id]:S.exp.filter(z=>z!==id);save();
+  animDet(id,open,()=>redrawCard(id)).finally(()=>detBusy.delete(id))}
+const subDue=t=>{if(t.done)return"";let w="";for(const x of t.subtasks||[]){if(x.done||!x.due)continue;const c=dueCls(x.due);if(c==="late")return"late";if(c==="today")w="today"}return w};
+const card=t=>{const ex=(S.exp||[]).includes(t.id),rd=isReady(t),dc=!t.done&&t.due?dueCls(t.due):"",sd=dc==="late"||dc==="today"?"":subDue(t);
+  return `<div class="card px ${t.done?"done":""} ${rd?"ready":""} ${ex?"exp":""} ${dc==="late"?"due-late":dc==="today"?"due-today":""}" draggable="${ex?"false":"true"}" data-id="${t.id}">
+  <div class="chk"></div>
+  <div class="body"><div class="txt">${esc(t.text)}</div>
+  <div class="meta"><span class="src ${t.src}" data-src="${t.id}" title="Источник задачи">${SRC[t.src]||t.src}${t.url?" ↗︎":""}</span>${dueBadge(t,t.done)}${subProg(t)}${sd?`<span class="due ${sd}" title="Подзадача с дедлайном">↳ ${sd==="late"?"просрочено":"сегодня"}</span>`:""}${rd?'<span class="rdy">можно закрывать</span>':""}${!ex&&t.description?'<span class="when" title="Есть описание">¶</span>':""}${t.when?`<span class="when">${t.when}</span>`:""}</div>
+  ${ex?det(t):""}</div>
+  ${t.due?"":`<button class="dueb" data-due="${t.id}" title="Поставить дедлайн">⏳</button>`}<button class="del" title="Удалить">✕</button></div>`};
+
+/* ===== SFX: tiny chiptune synth (Web Audio, no files) ===== */
+const SFX=(()=>{
+  let ac,master,bright,bus,PAN=0;let lastArp=-1,lastEnd=-1;
+  const init=()=>{if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=.26;
+    const lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=2400;lp.Q.value=.7; // muffled, warm
+    const dl=ac.createDelay(),fb=ac.createGain(),wet=ac.createGain();dl.delayTime.value=.16;fb.gain.value=.32;wet.gain.value=.22; // short dark echo
+    const dlf=ac.createBiquadFilter();dlf.type="lowpass";dlf.frequency.value=1200;
+    master.connect(lp);lp.connect(ac.destination);lp.connect(dl);
+    bright=ac.createGain();bright.gain.value=.26;bright.connect(ac.destination);bright.connect(dl); /* full-range bus (no low-pass), same echo */
+    dl.connect(dlf).connect(fb).connect(dl);dlf.connect(wet).connect(ac.destination)}if(ac.state==="suspended")ac.resume();return ac};
+  const out=g=>{const d=bus||master;if(PAN&&!S.mono&&ac.createStereoPanner){const p=ac.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,PAN));g.connect(p).connect(d)}else g.connect(d)}; // stereo
+  let PW;const pulse=()=>{if(!PW){const n=32,re=new Float32Array(n),im=new Float32Array(n),D=.25;for(let k=1;k<n;k++)im[k]=2/(k*Math.PI)*Math.sin(k*Math.PI*D);PW=ac.createPeriodicWave(re,im)}return PW};
+  const vib=(o,t,d,depth=18,rate=6)=>{const l=ac.createOscillator(),lg=ac.createGain();l.frequency.value=rate;lg.gain.setValueAtTime(0,t);lg.gain.linearRampToValueAtTime(depth,t+d*.6);l.connect(lg).connect(o.detune);l.start(t);l.stop(t+d+.05)};
+  const tone=(f,t,d,type="square",v=.5,f2,vb)=>{const o=ac.createOscillator(),g=ac.createGain();if(type==="pulse")o.setPeriodicWave(pulse());else o.type=type;if(vb)vib(o,t,d);o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);
+    g.gain.setValueAtTime(v,t);g.gain.setValueAtTime(v,t+d*.7);g.gain.linearRampToValueAtTime(0,t+d);o.connect(g);out(g);o.start(t);o.stop(t+d+.02);
+    if(type==="square"){const o2=ac.createOscillator();o2.type="square";o2.detune.value=-14;o2.frequency.setValueAtTime(f,t);if(f2)o2.frequency.exponentialRampToValueAtTime(f2,t+d);o2.connect(g);o2.start(t);o2.stop(t+d+.02)}};
+  const pad=(f,t,d,v,type="triangle")=>{const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+d*.3);g.gain.linearRampToValueAtTime(0,t+d);o.connect(g);out(g);o.start(t);o.stop(t+d+.02)}; // soft attack
+  const saw=(f,t,d,v,c0=3200,c1=500,q=5)=>{const g=ac.createGain(),fl=ac.createBiquadFilter();fl.type="lowpass";fl.Q.value=q;
+    fl.frequency.setValueAtTime(c0,t);fl.frequency.exponentialRampToValueAtTime(c1,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.008);
+    g.gain.setValueAtTime(v,t+d*.55);g.gain.linearRampToValueAtTime(0,t+d);fl.connect(g);out(g);
+    [-11,11].forEach(dt=>{const o=ac.createOscillator();o.type="sawtooth";o.frequency.value=f;o.detune.value=dt;o.connect(fl);o.start(t);o.stop(t+d+.02)})};
+  const swish=(t,d=.16,v=.55)=>{const n=ac.createBuffer(1,ac.sampleRate*d,ac.sampleRate),a=n.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1;
+    const s=ac.createBufferSource(),fl=ac.createBiquadFilter(),g=ac.createGain();s.buffer=n;fl.type="bandpass";fl.Q.value=2.2;
+    fl.frequency.setValueAtTime(8000,t);fl.frequency.exponentialRampToValueAtTime(700,t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+    s.connect(fl).connect(g);out(g);s.start(t)};
+  const isKZ=()=>document.body.classList.contains("kz");
+  const noise=(t,d,v=.4,freq=3000,type="bandpass")=>{const n=ac.createBuffer(1,ac.sampleRate*d,ac.sampleRate),a=n.getChannelData(0);
+    for(let i=0;i<a.length;i+=4){const r=Math.random()*2-1;a[i]=a[i+1]=a[i+2]=a[i+3]=r} // sample-hold = crunchier, 8-bit-ish
+    const s=ac.createBufferSource(),fl=ac.createBiquadFilter(),g=ac.createGain();s.buffer=n;fl.type=type;fl.frequency.value=freq;
+    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);s.connect(fl).connect(g);out(g);s.start(t)};
+  const N=m=>440*2**((m-69)/12);
+  const SC=[0,2,3,5,7,8,10,12,14,15]; let combo=0,last=0;
+  const step=()=>{const now=performance.now();combo=now-last<6000?combo+1:0;last=now}; // combo window 6s
+  const rnd=()=>SC[Math.random()*5|0]; // small random scale offset for tiny clicks
+  const EM=[0,2,3,5,7,8,10],deg=i=>12*Math.floor(i/7)+EM[((i%7)+7)%7]; // natural minor, in scale steps
+  const KEYS={inbox:-2,possum:0,camp:5,merch:-5,plush:3,other:-4}; // semitones from E: D, E, A, B, G, C minor
+  const PROG=[0,5,2,6]; // i - VI - III - VII
+  const AMB={on:false,E:64,k:0,i:0,id:null};
+  const UP=[[0,4,7,4,0,4],[0,2,4,7,4,2],[0,4,2,7,4,9],[0,7,4,7,2,7],[0,2,4,2,0,-3],[4,0,4,7,9,7],[0,4,7,9,7,4]];
+  const DOWN=[[9,7,4,2,0,-3],[7,6,4,2,1,0],[11,9,7,4,2,0],[7,4,7,2,4,0],[9,7,6,4,2,0],[7,4,2,0,-1,-3],[11,7,9,4,7,2],[7,2,4,0,2,-3]]; // falling figures
+  const END=[[2,1],[4,3],[6,4],[1,0],[9,7],[3,2]]; // melody "sighs"
+  const P={
+    kzComplete(o={}){bus=bright;const t=ac.currentTime;step();const c=combo,E=64+(KEYS[o.col]??0),k=PROG[c%4],base=o.pan||0;
+      AMB.E=E;AMB.k=k;
+      PAN=base+.4;swish(t);PAN=base;tone(2600,t+.05,.22,"sine",.06);tone(3950,t+.05,.16,"sine",.035); // katana swish + ring
+      const st=t+.09;[0,2,4].forEach((d,i)=>{PAN=base+(i-1)*.35;saw(N(E-12+deg(k+d)),st,.42,.09,4200,420)}); // synthwave chord stab
+      PAN=base*.5;saw(N(E-24+deg(k)),st,.34,.13,900,160,2); // bass
+      if(c>=2){PAN=base;[0,2,4,7,4,2].forEach((d,i)=>saw(N(E+deg(k+d)),st+.04+i*.06,.07,.045,5000,1400))} // arp sparkle
+      if(c>=4){PAN=0;tone(140,st,.14,"sine",.75,38);noise(st+.18,.18,.32,1600)} // kick + gated snare
+      if(c>=6){PAN=base;saw(N(E+12+deg(k+4)),st+.42,.4,.05,6000,900)} // lead tail
+      PAN=0},
+    complete(o={}){if(isKZ())return P.kzComplete(o);bus=bright;const t=ac.currentTime;step();const c=combo,E=64+(KEYS[o.col]??0),k=PROG[c%4],base=o.pan||0; // inspired by blinch
+      AMB.E=E;AMB.k=k; // ambient follows the current key + chord
+      PAN=base;noise(t,.03,.28,2500); // CRT-ish crunch on attack
+      const ARP=Math.random()<.5?DOWN:UP,fam=ARP===DOWN?100:0;
+      let ai;do{ai=Math.random()*ARP.length|0}while(fam+ai===lastArp);lastArp=fam+ai;
+      let ei;do{ei=Math.random()*END.length|0}while(ei===lastEnd);lastEnd=ei;
+      const sp=.05+Math.random()*.012; // tiny tempo humanize
+      ARP[ai].forEach((d,i)=>{PAN=base+(i%2?.35:-.35);tone(N(E+deg(k+d)),t+i*sp,.05,"pulse",i%2?.16:.21)}); // notes fly L/R around the column
+      if(c>=6)ARP[ai].forEach((d,i)=>{PAN=base+(i%2?-.5:.5);tone(N(E+12+deg(k+d)),t+i*sp,.04,"triangle",.07)}); // layer 3: high octave
+      const T2=t+ARP[ai].length*sp;
+      PAN=base*.5;tone(N(E-24+deg(k)%12),t,.34,"triangle",.5); // low chord root
+      [0,4].forEach(d=>pad(N(E-12+deg(k+d)),t,.6,.08)); // soft pad
+      if(c>=2)[0,4,7,4].forEach((d,i)=>tone(N(E-24+deg(k+d)),t+i*sp*1.5,.08,"pulse",.11)); // layer 1: bass arp
+      if(c>=4){PAN=0;tone(150,t,.12,"sine",.7,40);noise(t+3*sp,.08,.35,1800);for(let i=0;i<6;i++)noise(t+i*sp,.02,.07,9000,"highpass")} // layer 2: kick, snare, hats
+      PAN=base;
+      if(fam){ // falling family: tail keeps falling from the last arp note
+        const L=ARP[ai][ARP[ai].length-1],TL=[[-1,-2],[-2,-3],[-1,-3],[-2,-4],[-1,-2,-3]][Math.random()*5|0];
+        TL.forEach((d,i)=>{const z=i===TL.length-1;tone(N(E+deg(k+L+d)),T2+i*.12,z?.36:.11,"pulse",z?.15:.17,null,z)});
+      }else{
+        tone(N(E+12+deg(k+END[ei][0])),T2,.14,"pulse",.17);
+        tone(N(E+12+deg(k+END[ei][1])),T2+.14,.32,"pulse",.15,null,true)}}, // held note with vibrato
+    bigwin(){const t=ac.currentTime;[57,60,64,65,64,60,64,69].forEach((m,i)=>tone(N(m+12),t+i*.09,.12,"square",.22));[45,41,43,45].forEach((m,i)=>tone(N(m),t+i*.2,.24,"triangle",.7));noise(t+.7,.5,.2,900,"lowpass")},
+    colclear(){if(isKZ()){const t=ac.currentTime; // tape-rewind rise, then a big neon chord
+        saw(N(52),t,.45,.07,600,5000,3);const o=ac.createOscillator(),g=ac.createGain();o.type="sawtooth";o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(880,t+.42);
+        g.gain.setValueAtTime(.05,t);g.gain.linearRampToValueAtTime(0,t+.44);o.connect(g);out(g);o.start(t);o.stop(t+.46);
+        const f=t+.46;swish(f,.2,.5);[57,64,69,72,76].forEach((m,i)=>{PAN=(i-2)*.25;saw(N(m),f+i*.015,.9,.06,5200,500)});PAN=0;saw(N(45),f,.8,.12,1200,150,2);
+        tone(140,f,.16,"sine",.8,36);noise(f,.5,.25,8000,"highpass");return}
+      const t=ac.currentTime;
+      for(let i=0;i<8;i++)noise(t+i*.03,.03,.18+i*.04,2200); // snare roll crescendo
+      const f=t+.26;[81,81,81].forEach((m,i)=>tone(N(m),f+i*.08,.06,"square",.24)); // ta-ta-ta
+      tone(N(88),f+.24,.16,"square",.26); // leap up to E6
+      [81,85,88,93].forEach((m,i)=>tone(N(m),f+.42+i*.025,.55,"square",.16)); // A MAJOR chord (bright resolve)
+      tone(N(45),f+.42,.6,"triangle",.8);tone(N(57),f+.42,.6,"triangle",.4); // bass
+      [100,105,98,103,105].forEach((m,i)=>tone(N(m),f+.5+i*.07,.12,"triangle",.1)); // bell sparkle
+      noise(f+.42,.5,.25,8000,"highpass")}, // cymbal
+    undo(){const t=ac.currentTime,r=2**(rnd()/12);tone(700*r,t,.12,"square",.25,180*r)},
+    bead(o={}){const t=ac.currentTime,m=[76,72,69,64][o.k??0];tone(N(m),t,.08,"triangle",.42);tone(N(m+12),t,.035,"square",.07)}, // sync-pause beads: high at "сразу", low at 10 s
+    pick(){const t=ac.currentTime;tone(N(64+rnd()),t,.04,"triangle",.4);noise(t,.03,.25,2500)},
+    drop(){const t=ac.currentTime;noise(t,.09,.7,500,"lowpass");const r=rnd();tone(N(43+r),t,.07,"square",.3,N(36+r))},
+    add(){const t=ac.currentTime,r=rnd();tone(N(64+r),t,.05,"square",.2);tone(N(69+r),t+.06,.08,"square",.2)},
+    del(){const t=ac.currentTime;noise(t,.15,.5,1500);tone(300,t,.15,"sawtooth",.18,60)},
+    sync(){const t=ac.currentTime;for(let i=0;i<6;i++)tone(N(69+[0,3,7,10,7,12][i]),t+i*.07,.07,"triangle",.3)},
+  };
+  // ambient: quiet ostinato + drone that follows the current key/chord, through the muffled bus
+  const PAT=[0,4,7,4,2,4,7,4];
+  const BASS=[0,0,12,0,0,12,0,12];
+  function kzTick(n,t){ // synthwave bed: chord every 32 steps (i-VI-III-VII from the current chord)
+    const cd=AMB.k+PROG[Math.floor(n/32)%4],root=AMB.E-24+deg(cd);
+    if(n%2===0){PAN=0;saw(N(root+BASS[(n/2)%8]),t,.14,.05,1100,260,3)}                  // pulsing bass, 8ths
+    if(n%32===0){[0,2,4].forEach((d,i)=>{PAN=(i-1)*.4;pad(N(AMB.E-12+deg(cd+d)),t,4.9,.032,"triangle")})} // pad
+    if(n%2===1){PAN=(n%4===1)?-.35:.35;tone(N(AMB.E+deg(cd+[0,2,4,7][(n>>1)%4])),t,.12,"triangle",.018)} // soft arp
+    if(n%4===2){PAN=.2;noise(t,.03,.025,9000,"highpass")}                                 // hats
+    PAN=0}
+  function tick(){if(!AMB.on||S.mute||!ac)return;const t=ac.currentTime+.05;bus=null;
+    if(performance.now()-last>15000){AMB.k=0} // drift home to the tonic when idle
+    const n=AMB.n=(AMB.n||0)+1;if(isKZ())return kzTick(n,t);if(n%2)return;
+    const i=AMB.i++;PAN=i%2?.3:-.3;tone(N(AMB.E-12+deg(AMB.k+PAT[i%8])),t,.3,"triangle",.045);
+    if(i%16===0){PAN=0;pad(N(AMB.E-24+deg(AMB.k)),t,4.8,.1);pad(N(AMB.E-12+deg(AMB.k+4)),t,4.8,.035,"sine")}
+    PAN=0}
+  return {
+    play(n,o){if(S.mute)return;try{init();P[n](o)}catch(e){}bus=null;PAN=0},
+    warm(){try{init();const g=[master.gain.value,bright.gain.value];master.gain.value=bright.gain.value=0;P.pick(); // a silent first note: the synth code gets compiled now
+      setTimeout(()=>{master.gain.value=g[0];bright.gain.value=g[1]},180)}catch(e){}},
+    ambient(on){AMB.on=on;clearInterval(AMB.id);if(on){try{init()}catch(e){return}AMB.i=0;AMB.n=0;AMB.id=setInterval(tick,150);tick()}},
+  };
+})();
+/* building the synth costs ~20 ms on a slow phone; do it on the very first touch (a card waits 230 ms before it opens),
+   so that cost never lands on the first frame of an animation */
+addEventListener("pointerdown",()=>{if(!S.mute)SFX.warm()},{once:true,capture:true});
+
+/* ===== FX: pixel particles on a canvas overlay ===== */
+const FX=(()=>{
+  const cv=document.getElementById("fx"),cx=cv.getContext("2d");let parts=[],texts=[],run=false;
+  const fit=()=>{cv.width=innerWidth;cv.height=innerHeight};fit();addEventListener("resize",fit);
+  const G=3; // pixel grid
+  let lastT=0,acc=0;
+  const step=()=>{parts=parts.filter(p=>p.life-->0);for(const p of parts){p.vy+=p.g;p.vx*=.96;p.x+=p.vx;p.y+=p.vy}
+    for(const t of texts){t.life--;if(t.life%3===0)t.y-=2}texts=texts.filter(t=>t.life>0)};
+  function loop(now){
+    acc+=Math.min(100,lastT?now-lastT:16.7);lastT=now;let n=0;while(acc>=16.7&&n<6){step();acc-=16.7;n++}
+    cx.clearRect(0,0,cv.width,cv.height);
+    for(const p of parts){if(p.flick&&Math.random()<.25)continue; // ember flicker
+      const s=p.life<p.max*.35?G:p.s; cx.fillStyle=p.c;cx.fillRect(Math.round(p.x/G)*G,Math.round(p.y/G)*G,s,s)}
+    cx.font='700 16px '+getComputedStyle(document.documentElement).getPropertyValue("--ff");cx.textAlign="center";
+    for(const t of texts){const y=Math.round(t.y/2)*2;cx.globalAlpha=Math.min(1,t.life/15);cx.fillStyle="#1a0f05";cx.fillText(t.s,t.x+2,y+2);cx.fillStyle=t.c;cx.fillText(t.s,t.x,y);cx.globalAlpha=1}
+    if(parts.length||texts.length)requestAnimationFrame(loop);else{run=false;lastT=0;acc=0}
+  }
+  const go=()=>{if(!run){run=true;requestAnimationFrame(loop)}};
+  return{
+    burst(x,y,colors,n=22){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,sp=1.5+Math.random()*3.5,m=26+Math.random()*24|0;
+      parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2.2,g:.18,life:m,max:m,s:G*(1+(Math.random()*2|0)),c:colors[i%colors.length]})}
+      for(let i=0;i<8;i++){const m=40+Math.random()*30|0;parts.push({x:x+(Math.random()-.5)*30,y,vx:(Math.random()-.5)*.6,vy:-.6-Math.random()*1.2,g:-.01,life:m,max:m,s:G,c:"#f3d48a",flick:true})}go()},
+    dust(x,y,c){for(let i=0;i<10;i++){const d=i<5?-1:1,m=14+Math.random()*10|0;parts.push({x:x+d*Math.random()*20,y,vx:d*(1+Math.random()*2),vy:-Math.random()*1.2,g:.05,life:m,max:m,s:G,c})}go()},
+    ash(x,y){for(let i=0;i<16;i++){const m=30+Math.random()*30|0;parts.push({x:x+(Math.random()-.5)*120,y:y+(Math.random()-.5)*20,vx:(Math.random()-.5),vy:-.4-Math.random(),g:-.005,life:m,max:m,s:G,c:["#5b4a7a","#3b2e55","#9b5a6e"][i%3],flick:true})}go()},
+    rain(colors){for(let i=0;i<90;i++){const m=60+Math.random()*60|0;parts.push({x:Math.random()*innerWidth,y:-10-Math.random()*200,vx:(Math.random()-.5),vy:1+Math.random()*2,g:.05,life:m,max:m,s:G*2,c:colors[i%colors.length]})}go()},
+    text(x,y,s,c="#f3d48a"){texts.push({x,y,s,c,life:45});go()},
+  };
+})();
+const center=el=>{const r=el.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]};
+const colColor=id=>cc(COLS.find(c=>c.id===id));
+function shake(){const a=document.getElementById("app");a.classList.remove("shake");void a.offsetWidth;a.classList.add("shake")}
+function after(fn){requestAnimationFrame(()=>requestAnimationFrame(fn))}
+
+/* clicks */
+let lastTap={};
+function removeItem(x){if(!x)return;const p=parentOf(x);if(p)p.subtasks=p.subtasks.filter(z=>z!==x);else{S.tasks=S.tasks.filter(z=>z!==x);S.exp=S.exp.filter(z=>z!==x.id)}}
+document.addEventListener("click",e=>{
+  const m=e.target.closest("[data-mode]"); if(m){S.mode=m.dataset.mode;save();render();return}
+  const cardEl=e.target.closest(".card");
+  if(e.target.closest("#animb")){const k=Object.keys(ANIMS);S.anim=k[(k.indexOf(S.anim||"smooth")+1)%k.length];save();render();SFX.play("pick");return}
+  if(e.target.closest("#fontb")){const k=Object.keys(FONTS);S.font=k[(k.indexOf(S.font||"pix")+1)%k.length];save();applyFont();render();SFX.play("pick");return}
+  if(e.target.closest("#theme")){S.theme=S.theme==="loop"?"violet":"loop";save();render();SFX.play("pick");return}
+  if(e.target.closest("#crtb")){S.crt=!S.crt;save();render();SFX.play("pick");return}
+  if(e.target.closest("#ambb")){S.amb=!S.amb;save();render();SFX.play("pick");SFX.ambient(S.amb);return}
+  if(e.target.closest("#dailyT")){S.dailyOpen=!S.dailyOpen;save();render();SFX.play("pick");return}
+  const sb=e.target.closest("[data-src]");if(sb){e.stopPropagation();openSrc(sb.dataset.src,sb);SFX.play("pick");return}
+  if(e.target.closest("#srcGo")){saveSrc();const u=srcTask?.url;if(u&&/^https?:\/\//i.test(u))window.open(u,"_blank");else toast("Вставь ссылку, начинающуюся с http");return}
+  if(e.target.closest("#logoSpr")){const p=$("#eyepick");p.innerHTML=Object.entries(EYE_SKINS).filter(([k,v])=>!v.hidden||(S.unlocked||[]).includes(k)).map(([k,v])=>{const lock=v.lvl&&lvl()<v.lvl;return `<button data-eye="${k}" class="${(S.eye||"cat")===k?"on":""}${lock?" locked":""}" ${lock?"disabled title=\"Откроется на уровне "+v.lvl+"\"":""}>${eyeSvg(k,44,36,false)}${lock?"ур. "+v.lvl:v.name}</button>`}).join("")+`<input id="eyeCode" class="code" placeholder="секретный код…" maxlength="16" autocomplete="off">`;p.classList.toggle("open");bump();SFX.play("pick");return}
+  const ek=e.target.closest("[data-eye]");if(ek){S.eye=ek.dataset.eye;save();drawEye();bump();$("#eyepick").classList.remove("open");SFX.play("add");const[x,y]=center($("#logoSpr"));FX.burst(x,y,[EYE_SKINS[S.eye].body,EYE_SKINS[S.eye].pupil,"#fff4cf"],12);return}
+  const db=e.target.closest("[data-due]");if(db){e.stopPropagation();openDue(db.dataset.due,db);SFX.play("pick");return}
+  if(e.target.closest("#dueClr")){if(dueTask){dueTask.due=undefined;save();render()}closeDue();SFX.play("undo");return}
+  if(e.target.closest("#dueGcal")){if(dueTask?.due)window.open(gcalUrl(dueTask),"_blank");return}
+  const vb=e.target.closest("[data-view]");if(vb){S.view=vb.dataset.view;save();render();SFX.play("pick");return}
+  const lk=e.target.closest("a[data-href]");if(lk){e.preventDefault();e.stopPropagation();window.open(lk.dataset.href,"_blank");return}
+  if(e.target.closest("#gGo")){const id=$("#gId").value.trim(),sec=$("#gSec").value.trim();
+    if(!/\.apps\.googleusercontent\.com$/.test(id)||!sec){toast("Нужны Client ID (…apps.googleusercontent.com) и Client secret");SFX.play("undo");return}
+    GCAL.err=null;GCAL.busy=true;render();toast("Открыл вход в Google в браузере…");
+    gConnect(id,sec).then(()=>{GCAL.busy=false;SFX.play("colclear");toast("Google Календарь подключён ✦");GCAL.start()})
+      .catch(err=>{GCAL.busy=false;GCAL.err=String(err?.message||err).slice(0,140);SFX.play("undo");render()});return}
+  if(e.target.closest("#gRun")){GCAL.run();SFX.play("pick");return}
+  if(e.target.closest("#gOff")){window.dock.gdisconnect();GCAL.on=false;clearInterval(GCAL.iv);GCAL.err=null;render();SFX.play("undo");toast("Google отключён (события в календаре остались)");return}
+  if(e.target.closest("#calRef")){refreshCal();SFX.play("pick");return}
+  if(e.target.closest("#calCfg")){S.calCfg=!(S.calCfg||(!S.cal?.ics&&!S.cal?.mcp&&S.calCfg!==false));save();render();SFX.play("pick");return}
+  if(e.target.closest("#icsSave")){const v=$("#icsIn").value.trim();if(v&&!/^https:\/\//i.test(v)){toast("Нужна ссылка, начинающаяся с https://");return}
+    S.cal??={};S.cal.ics=v||undefined;if(!v){S.cal.events=[];S.cal.err=null}S.calCfg=false;save();render();SFX.play("add");if(v)refreshCal();return}
+  const cd=e.target.closest("[data-cdone]");if(cd){const x=findAny(cd.dataset.cdone);if(!x)return;const[cx,cy]=center(cd);setDone(x,true);save();render();
+    FX.burst(cx,cy,["#f3d48a","#e0b13e","#fff4cf"]);SFX.play("complete",{col:(x.col||parentOf(x)?.col)});return}
+  const gp=e.target.closest("[data-gpush]");if(gp){const x=findAny(gp.dataset.gpush);if(!x?.due)return;const p=parentOf(x);
+    window.open(gcalUrl(p?{...x,text:p.text+": "+x.text,url:p.url}:x),"_blank");x.gcal=1;save();render();toast("Открыл событие в Google Календаре - нажми «Сохранить»");return}
+  const e2t=e.target.closest("[data-ev2t]");if(e2t){const ev=[...(S.cal?.events||[]),...(S.cal?.mcp||[])].find(z=>z.id===e2t.dataset.ev2t);if(!ev)return;
+    if(S.tasks.some(t=>normTxt(t.text)===normTxt(ev.title))){toast("Такая задача уже есть");return}
+    const t=T("inbox",ev.title,false,"gc","");t.due=ev.day;S.tasks.unshift(t);save();render();SFX.play("add");toast("Закинул в Инбокс с дедлайном");return}
+  if(e.target.closest("#md")){copyObsidian();return}
+  if(e.target.closest("#expb")){const data=JSON.stringify({app:"pixel-zadachnik",v:1,at:new Date().toISOString(),state:{...S,setOpen:false,syncOpen:false}});
+    copyText(data).then(()=>{toast(`Скопировал все данные (${Math.round(data.length/1024)} КБ) - вставь в импорт на другом устройстве`);SFX.play("add")}).catch(()=>{console.log(data);toast("Буфер недоступен - данные в консоли")});return}
+  if(e.target.closest("#syncb")){S.syncOpen=!S.syncOpen;save();render();SFX.play("pick");return}
+  if(e.target.closest("#fbCfgGo")){const cfg=parseFbConfig($("#fbCfgIn").value);if(!cfg){toast("Не вижу apiKey / projectId / appId — вставь блок firebaseConfig целиком");SFX.play("undo");return}
+    const code=b64u(crypto.getRandomValues(new Uint8Array(24)));toast("Подключаю Firebase…");fbConnect({cfg,code});return}
+  if(e.target.closest("#fbKeyGo")){const c=parseKey($("#fbKeyIn").value);if(!c){toast("Это не ключ задачника (должен начинаться с ZDK1.)");SFX.play("undo");return}
+    toast("Подключаю…");fbConnect(c);return}
+  if(e.target.closest("#fbKeyCopy")){copyText(keyOf(LOCAL.sync.fb)).then(()=>toast("Ключ скопирован — вставь его на другом устройстве"));SFX.play("add");return}
+  if(e.target.closest("#fbRulesCopy")){copyText(FB_RULES).then(()=>toast("Правила скопированы — вставь во вкладку Rules и нажми Publish"));SFX.play("add");return}
+  if(e.target.closest("#syncGist")){e.preventDefault();S.syncWay="gist";save();render();return}
+  if(e.target.closest("#syncFb")){e.preventDefault();S.syncWay="fb";save();render();return}
+  if(e.target.closest("#syncOn")){const tk=$("#syncTok").value.trim();if(!tk){toast("Вставь токен");return}
+    dropDemoBoard();
+    LOCAL.sync={token:tk};saveLocal();SFX.play("add");toast("Подключаю…");SYNC.run().then(()=>{if(SYNC.err){toast("Синк: "+SYNC.err)}else{toast("Синхронизация включена ⇅");syncLoop()}render()});return}
+  if(e.target.closest("#keyShow,#keyHide")){keyShown=!!e.target.closest("#keyShow");SFX.play("pick");renderSettings();return}
+  if(e.target.closest("#syncNow")){SYNC.run().then(()=>toast(SYNC.err?"Синк: "+SYNC.err:"Синхронизировано ⇅"));SFX.play("pick");renderSettings();return}
+  if(e.target.closest("#syncOff")){const wasFb=!!LOCAL.sync?.fb;FB.stop();delete LOCAL.sync;saveLocal();SYNC.err=null;SYNC.lastCore=null;render();SFX.play("undo");
+    toast(wasFb?"Синхронизация отключена (данные остались в Firebase)":"Синхронизация отключена (гист остался на GitHub)");return}
+  if(e.target.closest("#impb")){S.impOpen=!S.impOpen;save();render();SFX.play("pick");setTimeout(()=>$("#impTa")?.focus(),0);return}
+  if(e.target.closest("#impGo")){let d;try{d=JSON.parse($("#impTa").value);d=d.state||d;if(!Array.isArray(d.tasks))throw 0}catch{toast("Это не похоже на экспорт задачника");SFX.play("undo");return}
+    d.setOpen=false;d.impOpen=false;localStorage.setItem(KEY,JSON.stringify(d));SFX.play("colclear");toast(`Загружено: ${d.tasks.length} задач`);setTimeout(()=>location.reload(),700);return}
+  if(e.target.closest("#setb")){S.setOpen=!S.setOpen;keyShown=false;save();render();SFX.play("pick");return}
+  if(e.target.closest("#goalsT")&&!editingGoals){S.goalsOpen=!S.goalsOpen;save();render();SFX.play("pick");return}
+  if(e.target.closest("#goalsEdit")){editingGoals=true;renderGoals();$("#goalsTa").focus();SFX.play("pick");return}
+  if(e.target.closest("#goalsSave")){S.goals=$("#goalsTa").value;S.goalsWeek=weekId();editingGoals=false;save();render();SFX.play("add");toast("Цели недели сохранены");return}
+  if(e.target.closest("#repb")){const btn=$("#repb");if(btn.disabled)return;const[x,y]=center(btn);const draft=buildReport();
+    btn.disabled=true;btn.querySelector(".rt").textContent="пишу…";SFX.play("pick");
+    llmReport(draft).then(r=>({r,ai:true})).catch(()=>({r:claudePrompt(draft),ai:false})).then(async({r,ai})=>{
+      btn.disabled=false;btn.querySelector(".rt").textContent="отчёт";
+      try{await copyText(r);SFX.play("add");FX.burst(x,y,["#e7c56a","#6fc3d9","#fff4cf"],14);
+        toast((ai?"Отчёт написан нейронкой и скопирован ✉":"Нейронки нет - скопировал промпт: вставь его Клоду ✦")+(r.length>4000?` (${r.length} симв., Telegram может обрезать)`:""))}
+      catch{console.log(r);toast("Не дали доступ к буферу: отчёт в консоли")}});
+    return}
+  if(e.target.closest("#hideb")){if(window.byeBanner)byeBanner();else window.dock?.hide();SFX.play("pick");return}  // ✕ asks first: «А как же ваши задачи?»
+  if(e.target.closest("#pinb")){window.dock?.pin();SFX.play("pick");return}
+  if(e.target.closest("#clearb")){const d=S.tasks.filter(t=>t.done);if(!d.length){toast("Сделанных задач нет");return}
+    S.archive=[...(S.archive||[]),...d].slice(-300);S.tasks=S.tasks.filter(t=>!t.done);save();render();SFX.play("del");
+    const[x,y]=center($("#board"));FX.ash(x,y);toast(`Убрал ${d.length} в архив - в отчёт за сегодня они попадут`);return}
+  if(e.target.closest("#nukeb")){const b=$("#nukeb");
+    if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="☠ точно? ещё раз";SFX.play("undo");
+      clearTimeout(b._t);b._t=setTimeout(()=>{setHtml="";renderSettings()},3000);return}
+    SFX.play("del");localStorage.removeItem(KEY);setTimeout(()=>location.reload(),250);return}
+  if(e.target.closest("#wipeb")){resetSecrets();return}
+  if(e.target.closest("#trailb")){S.trail=!S.trail;save();render();SFX.play("pick");return}
+  if(e.target.closest("#monob")){S.mono=!S.mono;save();render();SFX.play("pick");return}
+  if(e.target.closest("#mute")){S.mute=!S.mute;save();render();if(!S.mute)SFX.play("add");return}
+  const sl=e.target.closest(".subs li");
+  if(sl&&e.target.closest(".sc")){const x=findAny(sl.dataset.sid),p=parentOf(x);if(!x||!p)return;x.done=!x.done;save();render();
+    const el=document.querySelector(`.subs li[data-sid="${x.id}"] .sc`);if(el){const[cx,cy]=center(el);x.done?FX.burst(cx,cy,[colColor(p.col),"#f3d48a"],8):FX.ash(cx,cy)}
+    if(x.done&&isReady(p)){SFX.play("complete",{col:p.col});toast("Все подзадачи готовы - можно закрывать ✦")}else SFX.play(x.done?"add":"undo");return}
+  const sdel=e.target.closest("[data-sdel]");if(sdel){removeItem(findAny(sdel.dataset.sdel));save();render();SFX.play("del");return}
+  const prom=e.target.closest("[data-promote]");if(prom){const x=findAny(prom.dataset.promote),p=parentOf(x);if(!x||!p)return;removeItem(x);
+    const t=T(p.col,x.text,!!x.done,p.src,"");if(x.due)t.due=x.due;if(x.assignees?.length)t.assignees=x.assignees;if(x.done)t.doneAt=Date.now();
+    S.tasks.splice(S.tasks.indexOf(p)+1,0,t);save();render();SFX.play("drop");toast("Вынес в отдельную задачу");return}
+  const mv=e.target.closest("[data-move]");if(mv&&cardEl){const t=S.tasks.find(z=>z.id===cardEl.dataset.id);S.tasks=S.tasks.filter(z=>z!==t);t.col=mv.dataset.move;S.tasks.unshift(t);
+    S.exp=S.exp.filter(z=>z!==t.id);save();render();SFX.play("drop");toast("→ "+COLS.find(c=>c.id===t.col).name);return}
+  if(cardEl&&e.target.closest(".chk")){
+    const t=S.tasks.find(t=>t.id===cardEl.dataset.id);t.done=!t.done;t.doneAt=t.done?Date.now():null;const lvB=lvl();S.xp=Math.max(0,(S.xp||0)+(t.done?1:-1));save();if(lvl()>lvB)setTimeout(levelUp,800);
+    const [x,y]=center(cardEl.querySelector(".chk"));const c=colColor(t.col);
+    render();
+    const el=document.querySelector(`.card[data-id="${t.id}"]`);
+    if(t.done){
+      el?.classList.add("pop");eyeReact();FX.burst(x,y,[c,"#f3d48a","#e0b13e","#fff4cf"]);FX.text(x+30,y-6,"+1 XP");
+      const colTasks=S.tasks.filter(z=>z.col===t.col);
+      if(S.tasks.every(z=>z.done)){SFX.play("colclear");setTimeout(()=>SFX.play("bigwin"),1100);FX.rain(COLS.map(cc).concat("#f3d48a"));shake();toast("День закрыт! ✦✦✦")}
+      else if(colTasks.length>1&&colTasks.every(z=>z.done)){SFX.play("colclear");shake();const h=document.querySelector(`.col[data-col="${t.col}"] .colhead`);const[hx,hy]=center(h);FX.burst(hx,hy,[c,"#f3d48a"],40);toast(`${COLS.find(z=>z.id===t.col).name}: колонка зачищена!`)}
+      else SFX.play("complete",{col:t.col,pan:Math.max(-.8,Math.min(.8,x/innerWidth*2-1))});
+    }else{SFX.play("undo");FX.ash(x+60,y)}
+    return}
+  if(cardEl&&e.target.closest(".del")){const[x,y]=center(cardEl);FX.ash(x,y);SFX.play("del");S.tasks=S.tasks.filter(t=>t.id!==cardEl.dataset.id);save();render();return}
+  if(cardEl&&!e.target.closest(".det,button,.chk,input,textarea,[data-src],[data-due],[contenteditable=true]")){const id=cardEl.dataset.id,now=performance.now(),onTxt=!!e.target.closest(".txt");
+    if(onTxt&&lastTap.id===id&&now-lastTap.t<350){lastTap={};if(!S.exp.includes(id))toggleExp(id);   // double tap: keep it open and edit the title
+      const tx=document.querySelector(`.card[data-id="${id}"] .txt`);if(tx)editTitle(tx);return}
+    lastTap=onTxt?{id,t:now}:{};toggleExp(id);return}
+  const h=e.target.closest(".colhead"); if(h&&S.mode==="strip"){const id=h.parentElement.dataset.col;S.closed=S.closed.includes(id)?S.closed.filter(x=>x!==id):[...S.closed,id];save();render();return}
+  const di=e.target.closest("[data-di]"); if(di){S.tasks.unshift(T("inbox",S.daily[+di.dataset.di],false,"dl",""));save();render();SFX.play("add");const ib=document.querySelector(".col[data-col=inbox] .card");if(ib){const[x,y]=center(ib);FX.dust(x,y+14,"#8d7bb8")}toast("Закинул в Инбокс");return}
+});
+document.addEventListener("pointerdown",e=>{if(!e.target.closest("#eyepick,#logoSpr"))$("#eyepick").classList.remove("open")});
+document.addEventListener("pointerdown",e=>{if(srcTask&&!e.target.closest("#srcpop,[data-src]"))closeSrc()});
+document.addEventListener("pointerdown",e=>{if(S.setOpen&&!e.target.closest("#settings,#setb")){S.setOpen=false;keyShown=false;save();render()}});
+function editTitle(tx){tx.contentEditable="true";tx.focus();document.getSelection().selectAllChildren(tx);
+  const fin=()=>{const t=S.tasks.find(t=>t.id===tx.closest(".card").dataset.id);t.text=tx.textContent.trim()||t.text;save();render()};
+  tx.addEventListener("blur",fin,{once:true});
+  tx.addEventListener("keydown",k=>{if(k.key==="Enter"){k.preventDefault();tx.blur()}})}
+document.addEventListener("dblclick",e=>{
+  const st=e.target.closest(".st");if(st){const x=findAny(st.closest("li").dataset.sid);st.contentEditable="true";st.focus();document.getSelection().selectAllChildren(st);
+    st.addEventListener("blur",()=>{x.text=st.textContent.trim()||x.text;save();render()},{once:true});
+    st.addEventListener("keydown",k=>{if(k.key==="Enter"){k.preventDefault();st.blur()}});return}
+  // a card title's double tap is caught in the click handler (the card is redrawn between the taps, so no dblclick arrives)
+});
+document.addEventListener("submit",e=>{
+  e.preventDefault();const inp=e.target.querySelector("input");const v=inp?.value.trim();if(!v)return;
+  if(e.target.classList.contains("subadd")){const t=findAny(e.target.dataset.for);if(!t)return;mergeSubs(t,[{text:v}]);save();render();SFX.play("add");
+    document.querySelector(`.subadd[data-for="${t.id}"] input`)?.focus();return}
+  const cid=e.target.closest(".col").dataset.col;
+  S.tasks.push(T(cid,v,false,"ob",""));save();render();SFX.play("add");
+  document.querySelector(`.col[data-col="${cid}"] .add input`)?.focus();
+});
+
+/* task source popover */
+let srcTask=null;
+function openSrc(id,anchor){
+  const t=S.tasks.find(x=>x.id===id);if(!t)return;srcTask=t;const p=$("#srcpop"),r=anchor.getBoundingClientRect();
+  p.innerHTML=`<b>Источник:</b> ${SRC[t.src]}<br><small>${t.added?"добавлена "+new Date(t.added).toLocaleString("ru-RU",{dateStyle:"short",timeStyle:"short"}):"добавлена до трекера"}${t.doneAt?" · сделана "+new Date(t.doneAt).toLocaleDateString("ru-RU"):""}</small>
+    <div class="row"><input id="srcUrl" placeholder="ссылка на задачу: YouGile, Notion…" value="${esc(t.url||"")}"><button class="btn px" id="srcGo" title="Открыть в браузере">↗︎</button></div>`;
+  p.classList.add("open");
+  p.style.left=Math.min(innerWidth-290,Math.max(8,r.left-20))+"px";
+  p.style.top=(r.bottom+170>innerHeight?r.top-120:r.bottom+10)+"px";
+  setTimeout(()=>$("#srcUrl").focus(),0);
+}
+function saveSrc(){if(!srcTask)return;const v=($("#srcUrl")?.value||"").trim();if(v!==(srcTask.url||"")){srcTask.url=v||undefined;save();render()}}
+function closeSrc(){saveSrc();srcTask=null;$("#srcpop").classList.remove("open")}
+document.addEventListener("keydown",e=>{if(e.key!=="Enter"||!e.target.classList?.contains("code"))return;
+  const v=e.target.value.trim().toLowerCase(),el=e.target;el.value="";
+  const bad=()=>{el.classList.remove("bad");void el.offsetWidth;el.classList.add("bad");SFX.play("undo")};
+  if(RESET_CODES.includes(v))return resetSecrets();
+  const k=SECRET_CODES[v];if(!k)return bad();
+  S.unlocked=[...new Set([...(S.unlocked||[]),k])];S.eye=k;save();drawEye();render();$("#eyepick").classList.remove("open");
+  const sk=EYE_SKINS[k];SFX.play("colclear");const[x,y]=center($("#logoSpr"));FX.burst(x,y,[sk.body,sk.acc||sk.body,sk.pupil,"#fff4cf"],40);
+  FX.text(x+40,y,k==="claude"?"привет!":"секрет!",sk.acc||sk.body);toast("Секретный скин открыт: "+sk.name+" ✦")});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="icsIn")$("#icsSave").click();if(e.key==="Enter"&&e.target.id==="gSec")$("#gGo").click()});
+document.addEventListener("keydown",e=>{if(srcTask&&e.key==="Enter"&&e.target.id==="srcUrl"){closeSrc();SFX.play("add")}if(srcTask&&e.key==="Escape")closeSrc()});
+
+/* ===== calendar tab ===== */
+const ymd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const hm=d=>String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+function renderTabs(){const late=S.tasks.filter(t=>!t.done&&t.due&&dueDays(t.due)<0).length+S.tasks.reduce((n,t)=>n+(t.done?0:(t.subtasks||[]).filter(x=>!x.done&&x.due&&dueDays(x.due)<0).length),0);
+  const html=`<button class="tab ${S.view!=="cal"?"on":""}" data-view="board">${spr("board",S.view!=="cal"?"#e7c56a":"#8b9bb0",13)}доска</button>
+    <button class="tab ${S.view==="cal"?"on":""}" data-view="cal">${spr("cal",S.view==="cal"?"#e7c56a":"#8b9bb0",13)}календарь${late?`<small title="Просрочено">${late}</small>`:""}</button>`;
+  if($("#tabs").innerHTML!==html)$("#tabs").innerHTML=html}
+/* events from a secret iCal link: minimal RFC 5545 reader with common RRULEs */
+function icsDate(v,key){const m=/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?/.exec(v.trim());if(!m)return null;
+  if(!m[4])return new Date(+m[1],m[2]-1,+m[3]);
+  return m[7]?new Date(Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0))):new Date(+m[1],m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0))}
+const icsText=v=>v.replace(/\\n/gi," ").replace(/\\([,;\\])/g,"$1");
+function parseICS(txt,back=7,ahead=60){
+  const lines=txt.replace(/\r?\n[ \t]/g,"").split(/\r?\n/),raw=[];let cur=null;
+  for(const l of lines){if(l==="BEGIN:VEVENT")cur={ex:new Set()};else if(l==="END:VEVENT"){if(cur?.start)raw.push(cur);cur=null}
+    else if(cur){const i=l.indexOf(":");if(i<0)continue;const k=l.slice(0,i),v=l.slice(i+1),n=k.split(";")[0];
+      if(n==="SUMMARY")cur.title=icsText(v);else if(n==="UID")cur.uid=v;else if(n==="STATUS")cur.status=v;else if(n==="RRULE")cur.rrule=v;
+      else if(n==="DTSTART"){cur.start=icsDate(v,k);cur.allDay=!/T\d/.test(v)}else if(n==="RECURRENCE-ID")cur.rid=+icsDate(v,k);
+      else if(n==="EXDATE")v.split(",").forEach(x=>{const d=icsDate(x,k);if(d)cur.ex.add(+d)})}}
+  const from=new Date();from.setHours(0,0,0,0);from.setDate(from.getDate()-back);const to=new Date(from);to.setDate(to.getDate()+back+ahead);
+  const moved=new Set(raw.filter(e=>e.rid).map(e=>e.uid+"|"+e.rid)),out=[];
+  const push=(e,d)=>{if(d<from||d>to||e.ex.has(+d)||(!e.rid&&moved.has(e.uid+"|"+(+d))))return;
+    out.push({id:(e.uid||e.title)+"@"+(+d),title:e.title||"(без названия)",day:ymd(d),time:e.allDay?"":hm(d)})};
+  for(const e of raw){if(e.status==="CANCELLED")continue;
+    if(!e.rrule){push(e,e.start);continue}
+    const r=Object.fromEntries(e.rrule.split(";").map(p=>p.split("="))),iv=+(r.INTERVAL||1),cnt=r.COUNT?+r.COUNT:Infinity,until=r.UNTIL?icsDate(r.UNTIL):null;
+    const days=r.BYDAY?r.BYDAY.split(",").map(x=>["SU","MO","TU","WE","TH","FR","SA"].indexOf(x.slice(-2))):null;let n=0;
+    for(let k=0;k<800&&n<cnt;k++){let batch=[];const d=new Date(e.start);
+      if(r.FREQ==="DAILY")d.setDate(d.getDate()+k*iv),batch=[d];
+      else if(r.FREQ==="WEEKLY"){d.setDate(d.getDate()+k*7*iv);if(days){const wk=new Date(d);wk.setDate(d.getDate()-d.getDay());batch=days.sort().map(w=>{const x=new Date(wk);x.setDate(wk.getDate()+w);return x}).filter(x=>x>=e.start)}else batch=[d]}
+      else if(r.FREQ==="MONTHLY")d.setMonth(d.getMonth()+k*iv),batch=[d];
+      else if(r.FREQ==="YEARLY")d.setFullYear(d.getFullYear()+k*iv),batch=[d];
+      else{batch=[d];k=800}
+      let stop=false;for(const x of batch){if((until&&x>until)||n>=cnt||x>to){stop=true;break}n++;push(e,x)}if(stop)break}}
+  return out.sort((a,b)=>(a.day+a.time).localeCompare(b.day+b.time))}
+/* events handed over by an AI via MCP (sync_calendar) */
+function normEvents(list){return(Array.isArray(list)?list:[]).map(e=>{const st=String(e?.start||"");if(!e?.title||!st)return null;
+  const all=/^\d{4}-\d{2}-\d{2}$/.test(st),d=all?new Date(st+"T00:00:00"):new Date(st);if(isNaN(d))return null;
+  return{id:String(e.id||e.title+"@"+st),title:clip(e.title),day:ymd(d),time:all?"":hm(d),url:e.url}}).filter(Boolean)}
+async function refreshCal(quiet){const u=S.cal?.ics;if(!u||GCAL.on)return;S.cal.busy=true;if(S.view==="cal")renderCal();
+  try{const nat=window.Capacitor?.Plugins?.CapacitorHttp;
+    const txt=window.dock?.fetchText?await window.dock.fetchText(u):nat?String((await nat.get({url:u,responseType:"text"})).data||""):await(await fetch(u)).text();
+    if(!/BEGIN:VCALENDAR/.test(txt))throw new Error("по ссылке не iCal");
+    {const ev=parseICS(txt);if(JSON.stringify(ev)!==JSON.stringify(S.cal.events||[])){S.cal.events=ev;S.cal.at=Date.now()}}S.cal.err=null;if(!quiet)toast(`Календарь: ${S.cal.events.length} событий`)}
+  catch(e){S.cal.err=/fetch|network|load failed/i.test(String(e?.message||e))&&!window.dock?.fetchText&&!window.Capacitor
+      ?"браузер не пускает к Google напрямую: подключи ссылку в задачнике на компе, события придут сюда через синк"
+      :String(e?.message||e).slice(0,90)}
+  S.cal.busy=false;save();render()}
+function calItems(){const it=[];
+  for(const t of S.tasks){if(t.done)continue;if(t.due)it.push({k:"t",day:t.due,x:t,col:t.col,title:t.text});
+    for(const x of t.subtasks||[])if(x.due&&!x.done)it.push({k:"s",day:x.due,x,p:t,col:t.col,title:x.text})}
+  const seen=new Set();
+  for(const ev of[...(S.cal?.events||[]),...(S.cal?.mcp||[])]){if(seen.has(ev.id))continue;seen.add(ev.id);
+    const same=it.find(i=>i.k!=="e"&&i.day===ev.day&&normTxt(i.title)===normTxt(ev.title));
+    if(same){same.ing=true;continue} // our own deadline already mirrored in Google
+    it.push({k:"e",day:ev.day,ev,title:ev.title,time:ev.time})}
+  return it}
+function renderCal(){const c=S.cal||{},today=ymd(new Date()),items=calItems();
+  const st=c.busy?"обновляю…":c.err?`<span>ошибка: ${esc(c.err)}</span>`:c.ics||c.mcp||c.events?.length?[c.at&&(c.ics?"обновлён ":"с другого устройства ")+hm(new Date(c.at)),c.mcpAt&&"от Клода "+hm(new Date(c.mcpAt))].filter(Boolean).join(" · ")||"подключён":"не подключён";
+  let h=calHeader()??`<div class="calsrc px"><b>Google Календарь</b><small class="${c.err?"err":""}">${st}</small>${c.ics?'<button class="btn px" id="calRef" title="Обновить">⟳</button>':""}<button class="btn px" id="calCfg" title="Подключение">${c.ics?"⚙":"подключить"}</button>
+    ${S.calCfg||(!c.ics&&!c.mcp&&!c.events?.length&&S.calCfg!==false)?`<div class="calhelp"><b>Полная синхронизация с Google</b> подключается в задачнике <b>на компе</b> (вкладка «Календарь» → инструкция и кнопка «войти»). После этого задачи с дедлайнами и твои события сами придут сюда через ⇅ синхронизацию — здесь ничего настраивать не нужно.<br><br><b>Или только посмотреть события</b> по ссылке<ol><li>Открой Google Календарь → ⚙ Настройки.</li><li>Слева выбери свой календарь → «Интеграция календаря».</li><li>Скопируй «Секретный адрес в формате iCal» и вставь сюда:</li></ol>
+      <div class="row"><input id="icsIn" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" value="${esc(c.ics||"")}"><button class="btn px" id="icsSave">ок</button></div>
+      ${window.dock?.fetchText||window.Capacitor?"":"<b>В браузере на телефоне</b> Google не отдаёт календарь напрямую — подключи ссылку на компе, события придут через синк.<br>"}Ссылка хранится только на этом устройстве. Без неё тоже можно: попроси Клода «перенеси мой календарь в задачник» (через MCP).<br>
+      <b>Отправить в Google</b>: кнопка →G у задачи откроет готовое событие.</div>`:""}</div>`;
+  const by={};for(const i of items){const k=i.day<today?(i.k==="e"?null:"late"):i.day;if(k)(by[k]??=[]).push(i)}
+  const keys=Object.keys(by).filter(k=>k!=="late").sort();if(!keys.includes(today))keys.unshift(today);keys.sort();
+  const row=i=>{if(i.k==="e")return `<div class="ci e"><span class="ctime">${i.time||"весь день"}</span><span class="ctit">${esc(i.title)}</span><button class="cb" data-ev2t="${esc(i.ev.id)}" title="Сделать задачей с этим днём">→ задача</button></div>`;
+    const x=i.x;return `<div class="ci ${i.nested?"sub":""}" style="--cc:${colColor(i.col)}"><span class="cchk" data-cdone="${x.id}" title="Готово"></span><span class="ctit">${i.p&&!i.nested?`<small>${esc(i.p.text)} ↳</small>`:""}${esc(i.title)}</span>${i.ing||x.gcal||x.gev?'<span class="ing" title="Уже в Google Календаре">G✓</span>':GCAL.on?'<span class="ing" title="Уйдёт в Google при синхронизации">G…</span>':`<button class="cb" data-gpush="${x.id}" title="Добавить в Google Календарь">→G</button>`}</div>`};
+  const dayName=k=>{const d=new Date(k+"T00:00:00"),n=dueDays(k);return `<b>${d.toLocaleDateString("ru-RU",{weekday:"short",day:"numeric",month:"short"}).replace(".","")}</b>${n===0?"сегодня":n===1?"завтра":""}`};
+  const nest=list=>{const ev=list.filter(i=>i.k==="e").sort((a,b)=>(a.time||"00").localeCompare(b.time||"00")),ts=list.filter(i=>i.k==="t"),out=[...ev];
+    for(const t of ts){out.push(t);for(const x of list)if(x.k==="s"&&x.p===t.x){x.nested=true;out.push(x)}}
+    return out.concat(list.filter(i=>i.k==="s"&&!i.nested))};
+  if(by.late)h+=`<div class="cday late"><b>Просрочено</b>${by.late.length}</div>`+nest(by.late).map(row).join("");
+  for(const k of keys){h+=`<div class="cday ${k===today?"today":""}">${dayName(k)}</div>`+(nest(by[k]||[]).map(row).join("")||'<div class="cempty">пусто - можно выдохнуть</div>')}
+  $("#cal").innerHTML=h}
+if(S.cal?.ics&&APP){setTimeout(()=>refreshCal(true),1500);setInterval(()=>refreshCal(true),15*60e3)}
+
+/* ===== Google Calendar two-way sync (desktop only) =====
+   every task/subtask with a deadline = an all-day event (private props app=zadachnik, zid=<id>);
+   x.gev = event id, x.gp = what we last pushed {t,d,k}. Local change -> PATCH; change made in Google -> back into the task. */
+const gTitle=(x,p)=>p?p.text+": "+x.text:x.text;
+function gItems(){const out=[];for(const t of S.tasks){if(t.due)out.push({x:t,title:t.text,col:t.col,done:!!t.done,url:t.url});
+  for(const x of t.subtasks||[])if(x.due)out.push({x,p:t,title:gTitle(x,t),col:t.col,done:!!(x.done||t.done),url:t.url})}return out}
+const gState=i=>({t:i.title,d:i.x.due,k:!!i.done});
+const gSame=(a,b)=>!!a&&!!b&&a.t===b.t&&a.d===b.d&&!!a.k===!!b.k;
+function gBody(i){const e=new Date(i.x.due+"T00:00:00");e.setDate(e.getDate()+1);const col=COLS.find(c=>c.id===i.col);
+  return{summary:(i.done?"✓ ":"")+i.title,start:{date:i.x.due},end:{date:ymd(e)},transparency:"transparent",colorId:i.done?"8":null,
+    description:"Пиксельный задачник · "+(col?.name||"")+(i.p?" · подзадача":"")+(i.url?"\n"+i.url:""),
+    extendedProperties:{private:{app:"zadachnik",zid:i.x.id}}}}
+const GCAL={on:false,busy:false,err:null,at:0,quiet:false,
+  async api(m,p,b){const t=await window.dock.gapi(m,"https://www.googleapis.com/calendar/v3"+p,b?JSON.stringify(b):null);return t?JSON.parse(t):null},
+  soon(){if(!this.on||this.quiet)return;clearTimeout(this.h);this.h=setTimeout(()=>this.run(),5000)},
+  start(){this.on=true;clearInterval(this.iv);this.iv=setInterval(()=>this.run(),120e3);this.run()},
+  async run(){if(!this.on||this.busy)return;this.busy=true;if(S.view==="cal")renderCal();let changed=false;
+    try{const iso=d=>new Date(Date.now()+d*864e5).toISOString(),E=encodeURIComponent;
+      const mine=(await this.api("GET",`/calendars/primary/events?privateExtendedProperty=${E("app=zadachnik")}&showDeleted=true&maxResults=2500&timeMin=${E(iso(-180))}`))?.items||[];
+      const byZ=new Map();for(const ev of mine){const z=ev.extendedProperties?.private?.zid;if(!z)continue;const o=byZ.get(z);if(!o||(o.status==="cancelled"&&ev.status!=="cancelled"))byZ.set(z,ev)}
+      const items=gItems(),live=new Set(items.map(i=>i.x.id));
+      for(const i of items){const x=i.x,ev=byZ.get(x.id)||null,st=gState(i);
+        if(!ev||ev.status==="cancelled"){
+          if(ev&&x.gp&&gSame(x.gp,st)){x.due=undefined;delete x.gev;delete x.gp;changed=true;continue} // deleted in Google -> drop the deadline
+          if(i.done)continue;                                                                        // no new events for finished items
+          const n=await this.api("POST","/calendars/primary/events",gBody(i));x.gev=n.id;x.gp=st;changed=true;continue}
+        const rem={t:(ev.summary||"").replace(/^✓\s*/,""),d:ev.start?.date||(ev.start?.dateTime||"").slice(0,10),k:/^✓/.test(ev.summary||"")};
+        const localCh=!gSame(x.gp,st),remCh=!!x.gp&&!gSame(x.gp,rem);
+        if(remCh&&!localCh){ // edited in Google: date and title come back
+          if(isDate(rem.d))x.due=rem.d;let t=rem.t;if(i.p&&t.startsWith(i.p.text+": "))t=t.slice(i.p.text.length+2);if(t.trim())x.text=t.trim();
+          x.gev=ev.id;x.gp={t:gTitle(x,i.p),d:x.due,k:i.done};changed=true}
+        else if(localCh){await this.api("PATCH",`/calendars/primary/events/${ev.id}`,gBody(i));x.gev=ev.id;x.gp=st;changed=true}}
+      const arch=new Set((S.archive||[]).map(t=>t.id));
+      for(const[z,ev]of byZ)if(!live.has(z)&&ev.status!=="cancelled"&&!arch.has(z.split(".")[0]))await this.api("DELETE",`/calendars/primary/events/${ev.id}`);
+      const other=(await this.api("GET",`/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=500&timeMin=${E(iso(-7))}&timeMax=${E(iso(60))}`))?.items||[];
+      S.cal??={};S.cal.events=other.filter(ev=>ev.status!=="cancelled"&&ev.extendedProperties?.private?.app!=="zadachnik").map(ev=>{const all=!!ev.start?.date,d=all?new Date(ev.start.date+"T00:00:00"):new Date(ev.start.dateTime);
+        return{id:ev.id,title:ev.summary||"(без названия)",day:ymd(d),time:all?"":hm(d)}});
+      if(JSON.stringify(S.cal.events)!==S.cal.evSig){S.cal.evSig=JSON.stringify(S.cal.events);S.cal.at=Date.now();changed=true}
+      S.cal.err=null;this.err=null;this.at=Date.now()}
+    catch(e){const m=String(e?.message||e);this.err=m.slice(0,140);if(/войти заново|не подключён/.test(m))this.on=false}
+    this.busy=false;if(changed){this.quiet=true;save();this.quiet=false}render()}};
+const b64u=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+async function gConnect(id,secret){const v=b64u(crypto.getRandomValues(new Uint8Array(32)));
+  const ch=b64u(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v))),st=b64u(crypto.getRandomValues(new Uint8Array(12)));
+  await window.dock.gconnect({clientId:id,clientSecret:secret,challenge:ch,verifier:v,state:st})}
+if(window.dock?.gstatus)window.dock.gstatus().then(v=>{if(v)GCAL.start()}).catch(()=>{});
+function calHeader(){if(!window.dock?.gconnect)return null;
+  if(GCAL.on)return `<div class="calsrc px"><b>Google Календарь</b><small class="${GCAL.err?"err":""}">${GCAL.busy?"синхронизирую…":GCAL.err?esc(GCAL.err):GCAL.at?"синхронизирован "+hm(new Date(GCAL.at)):"подключён"}</small><button class="btn px" id="gRun" title="Синхронизировать сейчас">⟳</button><button class="btn px" id="gOff" title="Отключить Google">✕</button></div>`;
+  return `<div class="calsrc px"><b>Google Календарь</b><small class="${GCAL.err?"err":""}">${GCAL.busy?"жду вход в браузере…":GCAL.err?esc(GCAL.err):"не подключён"}</small><div class="calhelp"><b>Полная синхронизация</b>: задачи с дедлайнами сами появляются в Google (сделанные — с ✓), перенос даты, переименование или удаление в Google возвращаются сюда, твои события видны в этой вкладке, а через синк — и на телефоне. Один раз нужен свой ключ Google:
+    <ol><li><a href="#" data-href="https://console.cloud.google.com/projectcreate">Создай проект</a> в Google Cloud (имя любое, например «Задачник»).</li>
+    <li>Включи <a href="#" data-href="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com">Google Calendar API</a> (кнопка Enable).</li>
+    <li><a href="#" data-href="https://console.cloud.google.com/auth/overview">Google Auth Platform</a> → Get started: имя «Задачник», твоя почта, Audience — <b>External</b>.</li>
+    <li>Там же раздел <b>Audience</b> → <b>Publish app</b> (иначе Google будет отключать доступ каждые 7 дней).</li>
+    <li>Раздел <b>Clients</b> → Create client → тип <b>Desktop app</b> → скопируй Client ID и Client secret сюда:</li></ol>
+    <div class="row"><input id="gId" placeholder="Client ID  …apps.googleusercontent.com" autocomplete="off"></div>
+    <div class="row"><input id="gSec" type="password" placeholder="Client secret" autocomplete="off"><button class="btn px" id="gGo">войти</button></div>
+    Google предупредит, что приложение не проверено — это нормально, оно твоё: «Дополнительные настройки» → «Перейти на страницу…». Ключ хранится только на этом компе.</div></div>`}
+
+/* description saves on blur */
+document.addEventListener("change",e=>{const d=e.target.closest?.(".desc");if(!d)return;const t=findAny(d.dataset.desc);if(t){t.description=d.value.trim()||undefined;save()}});
+
+/* deadline popover */
+let dueTask=null;
+function openDue(id,anchor){const t=findAny(id);if(!t)return;dueTask=t;const p=$("#duepop"),r=anchor.getBoundingClientRect();
+  p.innerHTML=`<b>Дедлайн</b><div class="row"><input type="date" id="dueIn" value="${t.due||""}"><button class="btn px" id="dueClr" title="Убрать дедлайн">✕</button></div>
+    <div class="row"><button class="btn px" id="dueGcal" ${t.due?"":"disabled"} title="Открыть Google Календарь с готовым событием">📅 в Google Календарь</button></div>`;
+  p.classList.add("open");p.style.left=Math.min(innerWidth-290,Math.max(8,r.left-20))+"px";p.style.top=(r.bottom+150>innerHeight?r.top-120:r.bottom+10)+"px";
+  setTimeout(()=>{const i=$("#dueIn");i.focus();try{if(!t.due)i.showPicker()}catch(e){}},0)}
+function closeDue(){dueTask=null;$("#duepop").classList.remove("open")}
+document.addEventListener("change",e=>{if(e.target.id!=="dueIn"||!dueTask)return;dueTask.due=e.target.value||undefined;save();render();SFX.play("add");
+  const g=$("#dueGcal");if(g)g.disabled=!dueTask.due});
+document.addEventListener("pointerdown",e=>{if(dueTask&&!e.target.closest("#duepop,[data-due]"))closeDue()});
+
+/* drag & drop with live placeholder */
+let dragId=null; const ph=document.createElement("div"); ph.className="ph";
+document.addEventListener("dragstart",e=>{if(e.target.closest?.("[data-src],[data-due]"))return;const c=e.target.closest(".card");if(!c)return;dragId=c.dataset.id;e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain",dragId);requestAnimationFrame(()=>c.classList.add("dragging"));SFX.play("pick")});
+document.addEventListener("dragend",()=>{dragId=null;ph.remove();document.querySelectorAll(".dragging,.over").forEach(x=>x.classList.remove("dragging","over"))});
+document.addEventListener("dragover",e=>{
+  if(!dragId)return; const col=e.target.closest(".col"); if(!col)return;
+  e.preventDefault(); const list=col.querySelector(".list");
+  if(col.classList.contains("closed")){S.closed=S.closed.filter(x=>x!==col.dataset.col);save();col.classList.remove("closed")}
+  document.querySelectorAll(".over").forEach(x=>x!==list&&x.classList.remove("over")); list.classList.add("over");
+  const after=[...list.querySelectorAll(".card:not(.dragging)")].find(c=>{const r=c.getBoundingClientRect();return e.clientY<r.top+r.height/2});
+  after?list.insertBefore(ph,after):list.appendChild(ph);
+});
+document.addEventListener("drop",e=>{
+  if(!dragId)return; const col=e.target.closest(".col"); if(!col)return; e.preventDefault();
+  const list=col.querySelector(".list"); const next=ph.nextElementSibling?.closest(".card:not(.dragging)");
+  const t=S.tasks.find(t=>t.id===dragId); S.tasks=S.tasks.filter(x=>x!==t); t.col=col.dataset.col;
+  const idx=next?S.tasks.findIndex(x=>x.id===next.dataset.id):S.tasks.length;
+  S.tasks.splice(idx<0?S.tasks.length:idx,0,t); save(); render(); SFX.play("drop");
+  const el=document.querySelector(`.card[data-id="${t.id}"]`); if(el){el.classList.add("land");const r=el.getBoundingClientRect();FX.dust(r.left+r.width/2,r.bottom,colColor(t.col))}
+});
+
+/* sync (demo) + export */
+async function copyObsidian(){
+  const md=COLS.map(c=>{const ts=S.tasks.filter(t=>t.col===c.id);if(!ts.length)return"";
+    return `## ${c.name}\n`+ts.map(t=>`- [${t.done?"x":" "}] ${t.text} #${c.name.toLowerCase()}${t.due?" 📅 "+t.due:""}`).join("\n")}).filter(Boolean).join("\n\n");
+  const out=`# Задачи ${new Date().toLocaleDateString("ru-RU")}\n\n${md}\n\n## Дейлик\n${S.daily.map(d=>"- "+d).join("\n")}\n`;
+  try{await navigator.clipboard.writeText(out);toast("Скопировано в формате Obsidian")}catch{console.log(out);toast("Не дали доступ к буферу — markdown в консоли")}
+};
+
+/* watching eye: solid sprite, pupil pixel(s) roam towards the cursor; 7 skins + a secret one */
+const EYE_SKINS={
+  sun:   {name:"Солнце",  body:"#e0b13e",pupil:"#0e1a2b",g:[".....X.....","..X..X..X..","...XXXXX...",".XXXXXXXXX.","XXXXXXXXXXX",".XXXXXXXXX.","...XXXXX...","..X..X..X..",".....X....."]},
+  almond:{name:"Миндаль", body:"#e9dbb7",pupil:"#05070b",g:["...........","...XXXXX...",".XXXXXXXXX.","XXXXXXXXXXX","XXXXXXXXXXX","XXXXXXXXXXX",".XXXXXXXXX.","...XXXXX...","..........."]},
+  skull: {name:"Лич",     body:"#d9cfb4",pupil:"#c4566a",g:["..XXXXXXX..",".XXXXXXXXX.","XXXXXXXXXXX","XXXXXXXXXXX","XXXXXXXXXXX",".XXXXXXXXX.","..XXXXXXX..","..X.X.X.X..","..........."]},
+  cat:   {name:"Кот",     body:"#7f9d48",pupil:"#05070b",g:["...........","..X.....X..",".XXX...XXX.","XXXXXXXXXXX","XXXXXXXXXXX","XXXXXXXXXXX",".XXXXXXXXX.","..XXXXXXX..","..........."]},
+  wing:  {name:"Крылья",  body:"#9b6ce0",pupil:"#e7c56a",g:["...........","X.........X","XX.XXXXX.XX","XXXXXXXXXXX","XXXXXXXXXXX","XXXXXXXXXXX","XX.XXXXX.XX","X.........X","..........."]},
+  gem:   {name:"Кристалл",body:"#4fb0cf",pupil:"#05070b",g:[".....X.....","....XXX....","...XXXXX...","..XXXXXXX..",".XXXXXXXXX.","..XXXXXXX..","...XXXXX...","....XXX....",".....X....."]},
+  star:  {name:"Звезда",  body:"#e07a35",pupil:"#05070b",g:[".....X.....",".....X.....","..XXXXXXX..",".XXXXXXXXX.","XXXXXXXXXXX",".XXXXXXXXX.","..XXXXXXX..",".....X.....",".....X....."]},
+  // secret: unlocked by typing the code in the picker. Two tall eyes, little legs.
+  claude:{name:"Клод",    body:"#d97757",pupil:"#2b1a12",hidden:true,eyes:[[3,3],[7,3]],ph:2,
+          walk:["...........",".XXXXXXXXX.",".XXXXXXXXX.","XXXXXXXXXXX","XXXXXXXXXXX",".XXXXXXXXX.",".XXXXXXXXX.","X.X.....X.X","..........."],
+          g:["...........",".XXXXXXXXX.",".XXXXXXXXX.","XXXXXXXXXXX","XXXXXXXXXXX",".XXXXXXXXX.",".XXXXXXXXX.",".X.X...X.X.","..........."]},
+  // a pink flame-head with one yellow eye
+  flame: {name:"Огонёк",  body:"#e0559a",acc:"#ff9fd0",pupil:"#ffd23f",hidden:true,
+          g:["...o.......","..oXo..o...","..XXXXoXo..",".XXXXXXXXX.",".XXXXXXXXX.",".XXXXXXXXX.","..XoooooX..","...XXXXX...","..........."],
+          flick:[["..o........","..XXo...o..","..XXXXXoX..",".XXXXXXXXX.",".XXXXXXXXX.",".XXXXXXXXX.","..XooXooX..","...XXXXX...","..........."],
+                 ["....o......","...oXo.o...","..XXXXXXo..",".XXXXXXXXX.",".XXXXXXXXX.",".XXXXXXXXX.","..XoXoXoX..","...XXXXX...","..........."]]},
+  // a bone-white spoked wheel; the hub watches
+  lock:  {name:"Колесо",  body:"#e9dfc8",acc:"#b9ad94",pupil:"#2f6b5a",hidden:true,eyes:[[5,4]],wheel:true,roam:[-1,1,-1,1],
+          g:["...XXXXX...",".XX..o..XX.",".X.o.o.o.X.","X...XXX...X","XoooXXXoooX","X...XXX...X",".X.o.o.o.X.",".XX..o..XX.","...XXXXX..."]},
+  // a hungry yellow chomper, eye up top
+  chomp: {name:"Жуйка",   body:"#ffd23f",acc:"#c99a1a",pupil:"#05070b",hidden:true,eyes:[[4,2]],roam:[-1,1,-1,0],
+          frames:[["...XXXXX...",".XXXXXXXXX.","XXXXXXXXXXX","XXXXXXXXX..","XXXXXX.....","XXXXXXXXX..","XXXXXXXXXXX",".oXXXXXXXX.","...ooooo..."],
+                  ["...XXXXX...",".XXXXXXXXX.","XXXXXXXXXXX","XXXXXXXXXXX","XXXXXXXXXXX","XXXXXXXXXXX","XXXXXXXXXXX",".oXXXXXXXX.","...ooooo..."]],
+          g:["...XXXXX...",".XXXXXXXXX.","XXXXXXXXX..","XXXXXXX....","XXXXX......","XXXXXXX....","XXXXXXXXX..",".oXXXXXXXX.","...ooooo..."]},
+};
+function resetSecrets(){ // hide every secret skin again
+  const had=(S.unlocked||[]).length;S.unlocked=[];if(EYE_SKINS[S.eye]?.hidden)S.eye="cat";save();drawEye();render();$("#eyepick").classList.remove("open");
+  SFX.play("del");const[x,y]=center($("#logoSpr"));FX.ash(x,y);toast(had?"Секретные скины стёрты":"Секретов и так нет")}
+// skins unlocked by level (lvl). Letters map to colours via pal; X/o fall back to body/acc.
+Object.assign(EYE_SKINS,{
+  steam: {name:"Пар",     lvl:2,body:"#2a475e",pupil:"#1b2838",eyes:[[5,3]],pw:2,ph:2,roam:[-1,1,-1,0],pal:{w:"#e8f1f8"},
+          g:["...XXXXX...",".XXXwwwwXX.",".XXwwwwwwX.","XXXwwwwwwXX","XXXwwwwwwXX","XXwwwwwwXXX",".wwwXXXXXX.",".wwXXXXXXX.","...XXXXX..."]},
+  chrome:{name:"Хром",    lvl:3,body:"#f4f4f4",pupil:"#4285f4",eyes:[[4,3]],pw:3,ph:3,pal:{r:"#db4437",y:"#f4b400",g:"#0f9d58",w:"#ffffff"},
+          g:["...rrrrr...",".rrrrrrrrr.","ggrwwwwwryy","gggwwwwwyyy","gggwwwwwyyy","gggwwwwwyyy","gggwwwwwyyy",".ggggyyyyy.","...ggyyy..."]},
+  folder:{name:"Папка",   lvl:4,body:"#f8c74a",acc:"#d99a1e",pupil:"#3b2a10",eyes:[[3,4],[7,4]],ph:2,roam:[-1,1,-1,0],pal:{b:"#3d8fe0"},
+          g:["...........","oooo.......","ooooooooooo","XXXXXXXXXXX","XXXXXXXXXXX","XXXXXXXXXXX","XXbbbbbbbXX","XXbbbbbbbXX","..........."]},
+  blend: {name:"Блендер", lvl:5,body:"#e87d0d",pupil:"#2b6cb0",eyes:[[5,4]],pw:2,ph:2,roam:[-1,1,-1,0],pal:{w:"#ffffff"},
+          g:["XX.........",".XXX..XXX..","XXXXXXXXXX.","..XXwwwwXXX","XXXXwwwwXXX","..XXwwwwXXX","...XXXXXXX.","....XXXXX..","..........."]},
+  panel: {name:"Панель",  lvl:6,body:"#e9f1fb",acc:"#9bb3cf",pupil:"#10224a",eyes:[[4,3]],pal:{c:"#3b7dd8",r:"#f29d38",g:"#49b65a",b:"#3d8fe0"},
+          g:["ccccccccccc","cXXrrrXXXXc","cXrrrbbXooc","cXgggbbXXXc","cXgggbbXooc","cXXggbXXXXc","cXXXXXXXooc","cXXXXXXXXXc","ccccccccccc"]},
+});
+Object.assign(EYE_SKINS,{
+  zero:  {name:"Самурай", hidden:true,body:"#f4d6c6",acc:"#2a1f4a",pupil:"#1a1030",eyes:[[7,4]],roam:[0,1,-1,0],theme:"kz",
+          pal:{H:"#0e0d16",p:"#7a4cff",q:"#5a32c8",g:"#e7c56a",f:"#f4d6c6",c:"#2a1f4a"},
+          g:["....HHHH...","..gHHHHHH..","ppgHHHHHHH.","p..HHHfffH.","q..HHHffff.","....HHffff.",".....Hfff..","...cccccc..","..cccccccc."],
+          flutter:["....HHHH...",".pgHHHHHH..","pqgHHHHHHH.","pp.HHHfffH.","...HHHffff.","....HHffff.",".....Hfff..","...cccccc..","..cccccccc."]},
+});
+const XP_PER_LVL=5,lvl=()=>1+Math.floor((S.xp||0)/XP_PER_LVL);
+function levelUp(){const L=lvl(),nk=Object.values(EYE_SKINS).find(v=>v.lvl===L);SFX.play("colclear");
+  const[x,y]=center($("#xp"));FX.burst(x,y,["#e7c56a","#fff4cf","#6fc3d9"],36);FX.text(x,y+26,"LVL "+L);
+  toast(`Уровень ${L}!`+(nk?` Открыт скин: ${nk.name} ✦`:""))}
+const SECRET_CODES={"katana zero":"zero","katanazero":"zero","катана":"zero","катана зеро":"zero","зеро":"zero","клод":"claude","claude":"claude","клауд":"claude","clawd":"claude",
+  "deadcells":"flame","дедселлс":"flame","дедселс":"flame","dead cells":"flame",
+  "deadlock":"lock","дедлок":"lock",
+  "pacman":"chomp","пакман":"chomp","pac-man":"chomp"};
+const RESET_CODES=["сброс","reset","ресет"];
+const skinOf=k=>EYE_SKINS[k]||EYE_SKINS.cat;
+let wStep=0; // wheel rotation step (1 step = 11.25°)
+function wheelGrid(step){
+  const base=EYE_SKINS.lock.g.map(r=>[...r].map(c=>c==="X"?"X":"."));
+  const hub=(x,y)=>y>=3&&y<=5&&x>=4&&x<=6; // 3x3 hub
+  for(let y=0;y<9;y++)for(let x=0;x<11;x++)if(base[y][x]==="X"&&!hub(x,y)&&Math.hypot((x-5)/1.25,y-4)<3.2)base[y][x]="."; // keep only the rim + hub
+  for(let y=0;y<9;y++)for(let x=0;x<11;x++)if(hub(x,y))base[y][x]="X";
+  for(let k=0;k<8;k++){const a=step*Math.PI/16+k*Math.PI/4;
+    for(const r of[1.9,2.9]){const x=5+Math.round(r*Math.cos(a)*1.25),y=4+Math.round(r*Math.sin(a));if(base[y]&&base[y][x]===".")base[y][x]="o"}}
+  return base.map(r=>r.join(""));
+}
+const eyeSvg=(k,w=27,h=22,live=true,grid)=>{const sk=skinOf(k);if(!grid&&sk.wheel)grid=wheelGrid(live?wStep:0);let v=`<svg class="spr eye" width="${w}" height="${h}" viewBox="0 0 11 9">`;
+  (grid||sk.g).forEach((r,y)=>[...r].forEach((c,x)=>{const col=sk.pal?.[c]||(c==="X"?sk.body:c==="o"?sk.acc:null);if(col)v+=`<rect x="${x}" y="${y}" width="1" height="1" fill="${col}"/>`}));
+  (sk.eyes||[[5,4]]).forEach(([x,y])=>v+=`<rect ${live?'class="pupil"':""} x="${x}" y="${y}" width="${(sk.pw||1)+(live?dil():0)}" height="${(sk.ph||1)+(live?dil():0)}" fill="${sk.pupil}"/>`);
+  return v+`</svg>`};
+let pupils=[],ox=0,oy=0,lastLook=0,eyeBusy=false;
+/* the pupil glides: look() only sets a target, a frame loop eases a float position towards it and draws it on the pixel grid
+   (like the eye on the "А как же ваши задачи?" card) */
+let etx=0,ety=0,efx=0,efy=0,eRaf=0,eT=0;
+function aimEye(nx,ny){etx=nx;ety=ny;if(!eRaf){eT=performance.now();eRaf=requestAnimationFrame(glideEye)}}
+function glideEye(now){eRaf=0;const k=1-Math.pow(1-.2,Math.min(4,Math.max(0,now-eT)/16.7));eT=now;
+  efx+=(etx-efx)*k;efy+=(ety-efy)*k;if(Math.abs(etx-efx)<.03)efx=etx;if(Math.abs(ety-efy)<.03)efy=ety;
+  const nx=Math.round(efx),ny=Math.round(efy);
+  if(nx!==ox||ny!==oy){
+    if(S.trail&&Math.hypot(etx-efx,ety-efy)>1.6){const sk=skinOf(S.eye);pupils.forEach((p,i)=>{const[bx,by]=(sk.eyes||[[5,4]])[i];trail(p,bx+ox,by+oy,.45,260)})} // a fast sweep leaves fading ghosts
+    ox=nx;oy=ny;placePupils()}
+  if(efx!==etx||efy!==ety)eRaf=requestAnimationFrame(glideEye)}
+// secret skins react when a task gets done
+function eyeReact(){
+  const sk=skinOf(S.eye),play=(seq,ms)=>{eyeBusy=true;seq.forEach((g,i)=>setTimeout(()=>{if(skinOf(S.eye)===sk)drawEye(g||undefined)},i*ms));setTimeout(()=>{eyeBusy=false;if(skinOf(S.eye)===sk)drawEye()},seq.length*ms)};
+  if(sk.walk)play([sk.walk,null,sk.walk,null,sk.walk,null],110);                         // Клод shuffles his legs
+  else if(sk.frames){const[h,c]=sk.frames;play([h,c,h,null,h,c,h,null],80)}              // Жуйка chews
+  else if(sk.flick){const[a,b]=sk.flick;play([a,b,a,b,a,b,null],75);                     // Огонёк flares up
+    const[x,y]=center($("#logoSpr"));for(let i=0;i<3;i++)setTimeout(()=>FX.ash(x,y-6),i*120);FX.burst(x,y-8,[sk.body,sk.acc,sk.pupil],10)}
+  else if(sk.wheel){eyeBusy=true;wStep=0;for(let i=1;i<=16;i++)setTimeout(()=>{wStep=i%8;if(skinOf(S.eye)===sk)drawEye()},i*45+(i>11?(i-11)*45:0));setTimeout(()=>{wStep=0;eyeBusy=false;if(skinOf(S.eye)===sk)drawEye()},1300)} /* spins two full turns and settles on straight spokes */ // Колесо spins up
+}
+function placePupils(){const sk=skinOf(S.eye);pupils.forEach((p,i)=>{const[bx,by]=(sk.eyes||[[5,4]])[i];const d=dil()/2;p.setAttribute("x",bx+ox-d);p.setAttribute("y",by+oy-d)})}
+function trail(p,x,y,op,ms){const svg=p.ownerSVGElement,r=document.createElementNS("http://www.w3.org/2000/svg","rect");
+  r.setAttribute("x",x);r.setAttribute("y",y);r.setAttribute("width",p.getAttribute("width"));r.setAttribute("height",p.getAttribute("height"));r.setAttribute("fill",p.getAttribute("fill"));
+  r.style.opacity=op;r.style.transition=`opacity ${ms}ms steps(3)`;svg.insertBefore(r,pupils[0]);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>r.style.opacity=0));setTimeout(()=>r.remove(),ms+60)}
+let lastSkinTheme=null;
+function applySkinTheme(){const t=skinOf(S.eye).theme||null;if(t===lastSkinTheme)return;
+  const b=document.body;if(lastSkinTheme!==null||t){b.classList.add("theming");clearTimeout(applySkinTheme.h);applySkinTheme.h=setTimeout(()=>b.classList.remove("theming"),1300)}
+  b.classList.toggle("kz",t==="kz");lastSkinTheme=t}
+function drawEye(grid){applySkinTheme();$("#logoSpr").innerHTML=eyeSvg(S.eye,27,22,true,grid);pupils=[...document.querySelectorAll("#logoSpr .pupil")];placePupils()}
+(()=>{
+  drawEye();
+  function look(cx,cy){ // cx,cy: cursor in page coords
+    const sk=skinOf(S.eye),multi=!!sk.eyes,r=$("#logoSpr").getBoundingClientRect(),dx=cx-(r.left+r.width/2),dy=cy-(r.top+r.height/2),d=Math.hypot(dx,dy);
+    let nx=0,ny=0;
+    if(d>14){const ax=dx/d,ay=dy/d;
+      if(multi){const[x0,x1,y0,y1]=sk.roam||[-1,1,-1,1];nx=Math.max(x0,Math.min(x1,Math.round(ax*(Math.max(-x0,x1)+.4))));ny=Math.max(y0,Math.min(y1,Math.round(ay*1.3)))}
+      else{ny=Math.max(-1,Math.min(1,Math.round(ay*1.2)));const span=ny===0?2:1;nx=Math.max(-span,Math.min(span,Math.round(ax*(span+.4))))}}
+    aimEye(nx,ny);
+  }
+  if(!MOBILE)addEventListener("mousemove",e=>look(e.clientX,e.clientY));
+  else{ // phone: the eye keeps looking at your face — straight ahead in the way you usually hold the phone;
+        // tilting it away from that shifts the pupil a step, only after a clear tilt, with hysteresis so it does not flicker
+    const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+    const gaze=(nx,ny)=>{const sk=skinOf(S.eye);
+      if(sk.eyes){const[x0,x1,y0,y1]=sk.roam||[-1,1,-1,1];nx=cl(nx,x0,x1);ny=cl(ny,y0,y1)}else{ny=cl(ny,-1,1);const sp=ny===0?2:1;nx=cl(nx,-sp,sp)}
+      aimEye(nx,ny)};
+    const lv=(d,cur,t1,t2)=>{const a=Math.abs(d);let l=Math.abs(cur);
+      if(l===0&&a>t1)l=1;else if(l>=1&&a<t1-3)l=0;
+      if(l===1&&a>t2)l=2;else if(l===2&&a<t2-4)l=1;
+      return l?l*Math.sign(d):0};
+    let fb=null,fg=null,nb=0,ng=0,sx=0,sy=0;
+    const ori=e=>{if(e.beta==null)return;
+      if(fb==null){fb=nb=e.beta;fg=ng=e.gamma}
+      fb+=(e.beta-fb)*.2;fg+=(e.gamma-fg)*.2;     // smooth sensor noise
+      nb+=(fb-nb)*.0015;ng+=(fg-ng)*.0015;        // how you usually hold it: adapts over ~10 s
+      sx=lv(-(fg-ng),sx,10,22);                   // left edge away from you -> look further right (at you)
+      sy=lv(fb-nb,sy,12,99);                      // tilt toward you -> look down; away from you -> look up ("showing it something")
+      gaze(sy<0?-sx:sx,sy)};                      // while looking up, left/right follow the turn instead of mirroring it
+    addEventListener("deviceorientation",ori);
+    if(typeof DeviceOrientationEvent!=="undefined"&&DeviceOrientationEvent.requestPermission) // iPhone asks once, on the first tap
+      addEventListener("pointerdown",()=>DeviceOrientationEvent.requestPermission().catch(()=>{}),{once:true})}
+  // in the desktop app, follow the cursor across the whole screen
+  if(window.dock?.cursor)setInterval(async()=>{const c=await window.dock.cursor();if(c&&(!c.inside||document.elementFromPoint(c.x,c.y)?.tagName==="IFRAME"))look(c.x,c.y)},90);
+  // samurai's headband tails flutter every few seconds
+  setInterval(()=>{const sk=skinOf(S.eye);if(!sk.flutter||eyeBusy)return;[sk.flutter,null,sk.flutter,null].forEach((g,i)=>setTimeout(()=>{if(skinOf(S.eye)===sk&&!eyeBusy)drawEye(g||undefined)},i*160))},3500);
+  // chomper chews every ~20 s
+  setInterval(()=>{const sk=skinOf(S.eye);if(!sk.frames)return;const[h,c]=sk.frames,seq=[h,c,h,null,h,c,h,null];
+    seq.forEach((g,i)=>setTimeout(()=>{if(skinOf(S.eye)===sk)drawEye(g||undefined)},i*90))},20000);
+  // idle blink: pupils melt into the body for a moment
+  setInterval(()=>{const sk=skinOf(S.eye);pupils.forEach(p=>p.setAttribute("fill",sk.body));setTimeout(()=>pupils.forEach(p=>p.setAttribute("fill",sk.pupil)),140)},4200+Math.random()*2000);
+})();
+$("#date").textContent=new Date().toLocaleDateString("ru-RU");
+applyFont();render();
+/* tasks delivered by an AI through the MCP server land in the Inbox */
+const SRC_IN={yougile:"yg",notion:"nt",daily:"dl","дейлик":"dl",obsidian:"ob",claude:"ai",ai:"ai",calendar:"gc"};
+const isDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||"");
+const clip=v=>String(v||"").trim().slice(0,300);
+/* merge incoming subtasks by id / text; reorder=true keeps the incoming order (full list from YouGile) */
+function mergeSubs(t,list,reorder=false){t.subtasks??=[];let n=0;const order=[];
+  for(const it of list||[]){const text=clip(it?.text);if(!text&&!it?.id)continue;
+    let x=(it.id&&t.subtasks.find(z=>z.id===it.id))||t.subtasks.find(z=>normTxt(z.text)===normTxt(text));
+    if(!x){x={id:newSid(t),text,done:false};t.subtasks.push(x);n++}else if(text)x.text=text;
+    if(it.done!=null)x.done=!!it.done;
+    if(it.due!==undefined)x.due=isDate(it.due)?it.due:undefined;
+    if(Array.isArray(it.assignees))x.assignees=it.assignees.map(String).filter(Boolean);
+    if(/^https?:\/\//i.test(it.url||""))x.url=String(it.url);
+    order.push(x)}
+  if(reorder&&order.length)t.subtasks=[...order,...t.subtasks.filter(z=>!order.includes(z))];
+  return n}
+/* the avatar pops when tapped or reskinned */
+function bump(){const l=$("#logoSpr");l.classList.remove("bump");void l.offsetWidth;l.classList.add("bump")}
+function setDone(x,v){if(typeof SYNC!=="undefined")SYNC.holdAt=Date.now();if(!x)return;if(x.col){if(!!x.done!==v){x.done=v;x.doneAt=v?Date.now():null;S.xp=Math.max(0,(S.xp||0)+(v?1:-1))}}else x.done=v}
+/* find by {id} / {external_id} / {text} (exact after normalising; tasks first, then subtasks) */
+function findTask(m){if(!m)return null;if(m.id){const x=findAny(String(m.id));if(x)return x}
+  const e=String(m.external_id||"").trim().toLowerCase();if(e){const t=S.tasks.find(z=>(z.ext||"").toLowerCase()===e);if(t)return t}
+  if(m.text){const n=normTxt(m.text);const t=S.tasks.find(z=>normTxt(z.text)===n);if(t)return t;
+    for(const z of S.tasks)for(const x of z.subtasks||[])if(normTxt(x.text)===n)return x}
+  return null}
+function applySet(x,set){if(set.text)x.text=clip(set.text);
+  if("due" in set)x.due=isDate(set.due)?set.due:undefined;
+  if(Array.isArray(set.assignees))x.assignees=set.assignees.map(String).filter(Boolean);
+  if(set.done!=null)setDone(x,!!set.done);
+  if(set.url&&/^https?:\/\//i.test(set.url))x.url=set.url;
+  if(!x.col)return;
+  if(COLS.some(c=>c.id===set.column)){x.col=set.column}
+  if("description" in set)x.description=set.description?String(set.description).slice(0,4000):undefined;
+  if(set.url&&/^https?:\/\//i.test(set.url))x.url=set.url;
+  if(set.external_id)x.ext=String(set.external_id)}
+/* add_tasks item: update the task with the same id / external_id, otherwise add (skipping text duplicates) */
+function upsertTask(it){const ext=clip(it.external_id);const text=clip(it.text);
+  let t=(it.id&&S.tasks.find(z=>z.id===it.id))||(ext&&S.tasks.find(z=>(z.ext||"").toLowerCase()===ext.toLowerCase()))||null,isNew=false;
+  const url=/^https?:\/\//i.test(it.url||"")?String(it.url):undefined,col=COLS.some(c=>c.id===it.column)?it.column:null;
+  if(!t){if(!text)return null;
+    if(!ext&&[...S.tasks,...(S.archive||[])].some(z=>(url&&z.url===url)||normTxt(z.text)===normTxt(text)))return null; // already on the board
+    t=T(col||"inbox",text,false,SRC_IN[String(it.source||"").toLowerCase()]||"ai","");t.from="ai";S.tasks.unshift(t);isNew=true}
+  else{if(text)t.text=text;if(col)t.col=col;if(it.source&&SRC_IN[String(it.source).toLowerCase()])t.src=SRC_IN[String(it.source).toLowerCase()]}
+  if(ext)t.ext=ext;if(url)t.url=url;
+  if(it.due!==undefined)t.due=isDate(it.due)?it.due:undefined;
+  if(it.description!==undefined)t.description=it.description?String(it.description).slice(0,4000):undefined;
+  if(Array.isArray(it.assignees))t.assignees=it.assignees.map(String).filter(Boolean);
+  if(Array.isArray(it.subtasks))mergeSubs(t,it.subtasks,true);
+  if(it.done!=null)setDone(t,!!it.done);
+  return isNew?"new":"upd"}
+const plural=(n,a,b,c)=>n%10===1&&n%100!==11?a:(n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?b:c);
+function importInbox(items){
+  if(!Array.isArray(items))return 0;const r={new:0,upd:0,done:0,del:0,cal:0};
+  for(const it of items){try{if(!it||typeof it!=="object")continue;const op=it.op||"add";
+    if(op==="add"){const k=upsertTask(it);if(k)r[k]++}
+    else if(op==="update"){const x=findTask(it.match);if(x){applySet(x,it.set||{});r.upd++}}
+    else if(op==="complete"){for(const m of it.items||[]){const x=findTask(m);if(x){setDone(x,it.done!==false);r.done++}}}
+    else if(op==="add_subtasks"){const x=findTask(it.match);if(x?.col){mergeSubs(x,it.subtasks);r.upd++}}
+    else if(op==="delete"){for(const m of it.items||[]){const x=findTask(m);if(x){removeItem(x);r.del++}}}
+    else if(op==="calendar"){S.cal??={};S.cal.mcp=normEvents(it.events);S.cal.mcpAt=Date.now();r.cal++}
+  }catch(e){console.warn("inbox item failed",e)}}
+  const n=r.new+r.upd+r.done+r.del+r.cal;
+  if(n){save();render();SFX.play("sync");
+    document.querySelectorAll(".col[data-col=inbox] .card").forEach((c,i)=>{if(i<r.new){const[x,y]=center(c);FX.burst(x,y,["#f0a07a","#fff4cf","#6fc3d9"],10)}});
+    const parts=[r.new&&`+${r.new} ${plural(r.new,"задача","задачи","задач")}`,r.upd&&`обновил ${r.upd}`,r.done&&`отметил ${r.done}`,r.del&&`убрал ${r.del}`,r.cal&&"календарь обновлён"].filter(Boolean);
+    toast("Клод: "+parts.join(", ")+" ✦")}
+  return n}
+if(APP&&window.dock.takeInbox){pushSnapshot();
+  setInterval(async()=>{try{const s=await window.dock.takeInbox();if(s)importInbox(JSON.parse(s))}catch(e){}},2500)}
+if(APP&&window.dock.legacy&&!localStorage.getItem(KEY))window.dock.legacy().then(d=>{if(d){localStorage.setItem(KEY,d);location.reload()}}).catch(()=>{});
+/* pixel icons for the desktop header buttons; X = button colour, o = highlight */
+const ICO={gear:["...XX...",".X.XX.X.","..XXXX..","XXX..XXX","XXX..XXX","..XXXX..",".X.XX.X.","...XX..."],
+  pin:["...XXXX...","..XoXXXX..","..XXXXXX..","...XXXX...","...XXXX...","..XXXXXX..",".XXXXXXXX.","....XX....","....XX....","....X....."],
+  close:["X......X",".X....X.","..X..X..","...XX...","...XX...","..X..X..",".X....X.","X......X"]};
+const icoSvg=m=>{const n=m.length;return `<svg width="${n*2}" height="${n*2}" viewBox="0 0 ${n} ${n}">${m.map((r,y)=>[...r].map((c,x)=>c==="X"?`<rect x="${x}" y="${y}" width="1" height="1" fill="currentColor"/>`:c==="o"?`<rect x="${x}" y="${y}" width="1" height="1" style="fill:var(--hl)"/>`:"").join("")).join("")}</svg>`};
+ICO.sheet=[".XXXXXX...",".X....XX..",".X.XX.XoX.",".X.....XX.",".X.XXXX.X.",".X......X.",".X.XXX..X.",".X......X.",".XXXXXXXX."];
+$("#repb .ri").innerHTML=icoSvg(ICO.sheet);
+[["#setb","gear"],...(APP?[["#pinb","pin"],["#hideb","close"]]:[])].forEach(([q,k])=>{const b=$(q);b.classList.add("ico");b.innerHTML=icoSvg(ICO[k])});
+if(APP){let was=null;const setPin=v=>{const b=$("#pinb");b.classList.toggle("on",v);
+    if(was!==null&&was!==v){b.classList.remove("stab","pull");void b.offsetWidth;b.classList.add(v?"stab":"pull")}was=v};
+  window.dock.pinned().then(setPin);window.dock.onPinned(setPin)}
+if(S.amb)addEventListener("pointerdown",()=>SFX.ambient(true),{once:true});
+/* phone: the back button shows the card instead of leaving (and closes it / the settings if they're open) */
+window.Capacitor?.Plugins?.App?.addListener?.("backButton",()=>{
+  if(window.byeOpen?.()){document.querySelector(".byew")?._close?.(false);return}
+  if(S.setOpen){S.setOpen=false;save();render();return}
+  window.byeBanner?.()});
+if(!APP&&!window.Capacitor&&"serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+<script src="mods-host.js"></script>
+<script src="bye.js"></script>
+</body>
+</html>

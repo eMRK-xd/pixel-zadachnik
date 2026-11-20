@@ -1,0 +1,9 @@
+{
+  "appId": "com.pixel.zadachnik",
+  "appName": "Задачник",
+  "webDir": "www",
+  "backgroundColor": "#000000",
+  "android": {
+    "adjustMarginsForEdgeToEdge": "auto"
+  }
+}
