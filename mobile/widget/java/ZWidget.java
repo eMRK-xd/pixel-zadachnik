@@ -160,7 +160,8 @@ public abstract class ZWidget extends AppWidgetProvider {
     }
 
     /** The eye, 11×9 cells. In the widget the pupil sits a pixel lower and widens as the day gets done: nothing done = the skin's own size,
-     *  half done = a step bigger, all done = one cell bigger. */
+     *  half done = a step bigger, all done = one cell bigger. While something is left it looks down at the tasks;
+     *  when everything is done it looks back up, straight at you. */
     static void eye(Canvas cv, float x, float y, float w, State s) {
         float cell = w / 11f;
         for (int r = 0; r < s.grid.length; r++)
@@ -173,7 +174,8 @@ public abstract class ZWidget extends AppWidgetProvider {
         int total = s.open + s.done;
         float g = total == 0 ? 0 : Math.round(s.done * 2f / total) / 2f;
         for (int[] e : s.eyes) {
-            float ph = s.ph + g, pw = s.pw + g, yy = Math.min(e[1] + 1, 9 - ph);
+            boolean allDone = total > 0 && s.open == 0;
+            float ph = s.ph + g, pw = s.pw + g, yy = allDone ? e[1] : Math.min(e[1] + 1, 9 - ph);
             rect(cv, x + (e[0] - g / 2) * cell, y + (yy - g / 2) * cell, x + (e[0] - g / 2 + pw) * cell, y + (yy - g / 2 + ph) * cell, s.pupil);
         }
     }
