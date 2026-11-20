@@ -639,7 +639,19 @@ function render(){
   $("#xp").style.width=((S.xp||0)%XP_PER_LVL)/XP_PER_LVL*100+"%";$("#lvl").textContent="LVL "+lvl();
   $("#xpt").textContent=`${(S.xp||0)%XP_PER_LVL}/${XP_PER_LVL}`;
   if(dil()!==lastDil){const first=lastDil===null;lastDil=dil();if(!first&&typeof drawEye==="function")drawEye()}
+  if(typeof widgetPush==="function")widgetPush();
 }
+/* Android home-screen widgets (mobile/widget): hand them the counts and the chosen eye skin, a moment after the board changes.
+   "done" goes as timestamps, so the widget itself starts from zero after midnight even if the app stays closed */
+var WIDGET=window.Capacitor?.isNativePlatform?.()?(window.Capacitor.Plugins?.Widget||window.Capacitor.registerPlugin?.("Widget")):null;
+var widgetLast="",widgetT=0; // var: render() may run before this line
+function widgetPush(){if(!WIDGET)return;clearTimeout(widgetT);widgetT=setTimeout(()=>{
+  const sk=skinOf(S.eye),since=Date.now()-2*864e5;
+  const st={open:S.tasks.filter(t=>!t.done).length,done:[...S.tasks,...(S.archive||[])].filter(t=>t.done&&t.doneAt>since).map(t=>t.doneAt),
+    grid:sk.wheel?wheelGrid(0):sk.g,pal:{X:sk.body,...(sk.acc?{o:sk.acc}:{}),...(sk.pal||{})},pupil:sk.pupil,body:sk.body,acc:sk.acc||sk.pupil,
+    eyes:sk.eyes||[[5,4]],pw:sk.pw||1,ph:sk.ph||1};
+  const j=JSON.stringify(st);if(j===widgetLast)return;widgetLast=j;
+  WIDGET.update({state:j}).catch(e=>{widgetLast="";console.warn("widget",e)})},800)}
 /* ===== sync between devices: a private GitHub Gist holds one JSON; each side merges by task id + change time ===== */
 const GIST_NAME="zadachnik-sync.json",GIST_DESC="pixel-zadachnik sync (private)";
 const SAME=Symbol("same");

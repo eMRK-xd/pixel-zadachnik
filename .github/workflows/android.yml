@@ -34,6 +34,18 @@ jobs:
           sed -i 's#@drawable/splash#@android:color/black#g' $RES/values/styles.xml
           sed -i '/name="AppTheme.NoActionBar"/a <item name="android:windowBackground">@android:color/black</item><item name="android:statusBarColor">@android:color/black</item><item name="android:navigationBarColor">@android:color/black</item>' $RES/values/styles.xml
           cat $RES/values/styles.xml
+          # home-screen widgets: our MainActivity (registers the Widget plugin), the providers, their layouts, the pixel font, the receivers
+          APP=android/app/src/main
+          cp widget/java/*.java $APP/java/com/pixel/zadachnik/
+          cp -r widget/res/. $RES/
+          mkdir -p $APP/assets/fonts && cp widget/assets/fonts/* $APP/assets/fonts/
+          python3 - <<'PY'
+          p="android/app/src/main/AndroidManifest.xml"
+          m=open(p,encoding="utf-8").read();r=open("widget/manifest-receivers.xml",encoding="utf-8").read()
+          assert "</application>" in m and ".WidgetA" not in m
+          open(p,"w",encoding="utf-8").write(m.replace("</application>",r+"    </application>",1))
+          PY
+          grep -c "android.appwidget.provider" $APP/AndroidManifest.xml
       - name: Build APK
         working-directory: mobile/android
         run: ./gradlew assembleRelease --no-daemon -q
@@ -49,6 +61,7 @@ jobs:
           "$BT/apksigner" verify --print-certs Zadachnik.apk | head -3
           rm -f key.p12
       - name: Attach to release
+        if: github.ref == 'refs/heads/main'   # test builds from other branches stay as artifacts only
         env: { GH_TOKEN: "${{ github.token }}" }
         run: gh release upload "$(gh release view --json tagName -q .tagName)" Zadachnik.apk --clobber
       - uses: actions/upload-artifact@v4

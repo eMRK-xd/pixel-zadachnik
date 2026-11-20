@@ -1,0 +1,21 @@
+        <!-- home-screen widgets (mobile/widget), drawn by ZWidget; updatePeriodMillis lets "done today" start from zero after midnight -->
+        <receiver android:name=".WidgetA" android:label="Задачник · глаз и счёт" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/zw_a" />
+        </receiver>
+        <receiver android:name=".WidgetA2" android:label="Задачник · рамка скина" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/zw_a2" />
+        </receiver>
+        <receiver android:name=".WidgetB" android:label="Задачник · большой глаз" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/zw_b" />
+        </receiver>
+        <receiver android:name=".WidgetC" android:label="Задачник · полоса прогресса" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/zw_c" />
+        </receiver>
+        <receiver android:name=".WidgetD" android:label="Задачник · глаз со значком" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/zw_d" />
+        </receiver>
