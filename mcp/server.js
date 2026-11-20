@@ -15,7 +15,9 @@ const DIR = process.env.ZADACHNIK_DIR ||
   path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "com.pixel.zadachnik");
 const SNAPSHOT = path.join(DIR, "tasks.json");
 const INBOX = path.join(DIR, "inbox.json");
-const COLUMNS = ["inbox", "possum", "camp", "merch", "plush", "other"];
+// columns live in the app (master tabs → columns, the user adds and renames them); list_tasks shows their ids.
+// An unknown column id simply lands in the Inbox on the app side.
+const column = () => z.string().min(1).max(40).describe("Column id as shown by list_tasks, e.g. inbox (the shared Inbox)");
 const SOURCES = ["yougile", "notion", "daily", "obsidian", "claude", "calendar"];
 
 const readJSON = (p, fallback) => { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch { return fallback; } };
@@ -85,7 +87,7 @@ server.registerTool(
     description: "Current tasks (with ids, deadlines, subtasks, external ids), weekly goals and daily notes from the pixel tracker.",
     inputSchema: {
       include_done: z.boolean().optional().describe("Also list finished tasks (default false)"),
-      column: z.enum(COLUMNS).optional().describe("Only this column"),
+      column: z.string().optional().describe("Only this column (id from list_tasks)"),
     },
   },
   async ({ include_done, column }) => {
@@ -96,7 +98,7 @@ server.registerTool(
       if (column && col.id !== column) continue;
       const ts = (snap.tasks || []).filter(t => t.column === col.id && (include_done || !t.done));
       if (!ts.length) continue;
-      lines.push(`\n## ${col.name} (${col.id})`);
+      lines.push(`\n## ${col.board ? col.board + " › " : ""}${col.name} (${col.id})`);
       for (const t of ts) {
         const subs = t.subtasks || [];
         const meta = [t.id, t.external_id, t.source, t.due && "до " + t.due, t.assignees?.length && "@" + t.assignees.join(", "),
@@ -127,7 +129,7 @@ server.registerTool(
         external_id: z.string().optional().describe("Key in the source system, e.g. CRASH-402 — enables upsert on re-import"),
         source: z.enum(SOURCES).optional().describe("Where the task came from (badge on the card)"),
         url: z.string().url().optional().describe("REQUIRED when the source has an address: direct link to the exact task / page / message, so the user can open it from the card"),
-        column: z.enum(COLUMNS).optional().describe("Target column if obvious; default inbox"),
+        column: column().optional().describe("Target column id from list_tasks if obvious; default inbox"),
         due: date.nullable().optional().describe("Deadline YYYY-MM-DD; null clears"),
         description: z.string().max(4000).optional(),
         assignees: z.array(z.string()).optional(),
@@ -167,7 +169,7 @@ server.registerTool(
       ...ref,
       set: z.object({
         text: z.string().min(1).max(300).optional(),
-        column: z.enum(COLUMNS).optional(),
+        column: column().optional(),
         due: date.nullable().optional().describe("YYYY-MM-DD; null clears"),
         description: z.string().max(4000).nullable().optional(),
         done: z.boolean().optional(),

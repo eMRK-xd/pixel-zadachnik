@@ -95,8 +95,18 @@ cd mcp && npm install    # MCP-сервер
 ## Проверка на телефоне (adb)
 
 Телефон владельца подключается по USB с включённой «Отладкой по USB»; `adb` лежит в `%LOCALAPPDATA%\Android\platform-tools`.
-- Поставить свежий APK: `gh run download <id> -n Zadachnik-apk`, затем `adb install -r Zadachnik.apk` (данные сохраняются).
+- **Собрать APK локально, без GitHub:** `bash mobile/build-apk.sh --install` (~2,5 мин): JDK 21 и Android SDK лежат в `%LOCALAPPDATA%Android`, сборка идёт в копии `E:zadachnik-build` (Android Gradle не принимает кириллицу в пути), подпись тем же ключом из `%USERPROFILE%`, так что ставится поверх релиза с сохранением данных. Подготовка проекта общая с GitHub — `mobile/prepare-android.sh`.
+- APK из GitHub: `gh run download <id> -n Zadachnik-apk`, затем `adb install -r Zadachnik.apk`.
 - Локальная версия без пересборки: `adb reverse tcp:8767 tcp:8767`, открыть `http://localhost:8767/index.html` в Chrome на телефоне; DevTools — `adb forward tcp:9222 localabstract:chrome_devtools_remote`.
 - Само приложение: на время замеров включить `"webContentsDebuggingEnabled": true` в `android` в `mobile/capacitor.config.json` (в релизах выключено); сокет `webview_devtools_remote_<pid>` (ищется в `/proc/net/unix`), `adb forward tcp:9223 localabstract:…`. Выключить, когда больше не нужно.
 - Кадры: `requestAnimationFrame`-замер через `Runtime.evaluate` по DevTools-протоколу; снаружи — `adb shell dumpsys gfxinfo com.pixel.zadachnik`.
 - Не выводить тексты задач владельца из телефона и не сохранять в его доску тестовые изменения.
+
+## Мастер-вкладки и колонки
+
+- `S.boards = [{id, name, icon, color, cols:[{id, name, color, lh, icon}]}]` — в `META_KEYS`, синкается вместе с целями и дейликом (последний изменивший побеждает).
+- Задача хранит только id колонки (`t.col`), поэтому перенос колонки в другую вкладку переносит и её задачи. Задача с неизвестной колонкой (колонку удалили на другом устройстве) показывается в Инбоксе (`colOf()`).
+- Инбокс (`INBOX`, id `inbox`) общий для всех вкладок; его имя — `S.colNames.inbox`.
+- «Сегодня» — встроенная вкладка, не хранится в `S.boards`: задачи из всех вкладок с дедлайном на сегодня или просроченные (и подзадачи с таким дедлайном). Задача, добавленная там, получает дедлайн на сегодня.
+- Миграция со старых 6 колонок: они становятся вкладкой «Основное» с теми же id; копия состояния до миграции лежит в `localStorage["pixel-tracker-v1-before-boards"]`.
+- MCP: колонки берутся из снимка (`columns: [{id, name, board}]`), жёсткого списка в `mcp/server.js` больше нет.

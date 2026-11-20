@@ -16,36 +16,8 @@ jobs:
         with: { node-version: 22 }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 21 }
-      - name: Android project from web/
-        working-directory: mobile
-        run: |
-          npm install --no-audit --no-fund
-          rm -rf www && cp -r ../web www && rm -f www/sw.js
-          npx cap add android
-          npx cap sync android
-          # pixel icon: adaptive (black background + emblem) and legacy (emblem on black) — no white fill from launchers
-          RES=android/app/src/main/res
-          for d in $RES/mipmap-*dpi; do
-            cp icons/ic_launcher.png "$d/ic_launcher.png"; cp icons/ic_launcher.png "$d/ic_launcher_round.png"
-            cp icons/ic_launcher_foreground.png "$d/ic_launcher_foreground.png"
-          done
-          echo '<?xml version="1.0" encoding="utf-8"?><resources><color name="ic_launcher_background">#000000</color></resources>' > $RES/values/ic_launcher_background.xml
-          # black window instead of the white launch screen / system bars
-          sed -i 's#@drawable/splash#@android:color/black#g' $RES/values/styles.xml
-          sed -i '/name="AppTheme.NoActionBar"/a <item name="android:windowBackground">@android:color/black</item><item name="android:statusBarColor">@android:color/black</item><item name="android:navigationBarColor">@android:color/black</item>' $RES/values/styles.xml
-          cat $RES/values/styles.xml
-          # home-screen widgets: our MainActivity (registers the Widget plugin), the providers, their layouts, the pixel font, the receivers
-          APP=android/app/src/main
-          cp widget/java/*.java $APP/java/com/pixel/zadachnik/
-          cp -r widget/res/. $RES/
-          mkdir -p $APP/assets/fonts && cp widget/assets/fonts/* $APP/assets/fonts/
-          python3 - <<'PY'
-          p="android/app/src/main/AndroidManifest.xml"
-          m=open(p,encoding="utf-8").read();r=open("widget/manifest-receivers.xml",encoding="utf-8").read()
-          assert "</application>" in m and ".WidgetA" not in m
-          open(p,"w",encoding="utf-8").write(m.replace("</application>",r+"    </application>",1))
-          PY
-          grep -c "android.appwidget.provider" $APP/AndroidManifest.xml
+      - name: Android project from web/ (same script as the local build, mobile/build-apk.sh)
+        run: bash mobile/prepare-android.sh
       - name: Build APK
         working-directory: mobile/android
         run: ./gradlew assembleRelease --no-daemon -q
