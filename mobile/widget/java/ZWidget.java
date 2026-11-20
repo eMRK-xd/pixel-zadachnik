@@ -27,6 +27,7 @@ import java.util.Map;
  * the bundled Pixelify font), from the state the page stores through WidgetPlugin:
  * {open, done:[timestamps], grid:[11 strings of 9 rows], pal:{char:"#rrggbb"}, pupil, eyes:[[x,y]], pw, ph, body, acc}.
  * "Done" counts what was ticked today (so it starts from zero every morning, even if the app was not opened); total = done + open.
+ * Every frame takes the skin's main colour.
  * Kinds: 0 = A 2×1 eye + count, 1 = A2 2×1 skin-coloured frame, 2 = B 2×2 big eye + beads, 3 = C 4×1 progress bar, 4 = D 1×1 eye + badge.
  */
 public abstract class ZWidget extends AppWidgetProvider {
@@ -158,7 +159,8 @@ public abstract class ZWidget extends AppWidgetProvider {
         rect(cv, u, h - 2 * u, w - u, h - u, Color.argb(89, 0, 0, 0));
     }
 
-    /** The eye, 11×9 cells. In the widget the pupil sits a pixel lower and grows with what is left: 0–1 open = 1×1, 2–4 a step bigger, 5+ = 2×2. */
+    /** The eye, 11×9 cells. In the widget the pupil sits a pixel lower and widens as the day gets done: nothing done = the skin's own size,
+     *  half done = a step bigger, all done = one cell bigger. */
     static void eye(Canvas cv, float x, float y, float w, State s) {
         float cell = w / 11f;
         for (int r = 0; r < s.grid.length; r++)
@@ -168,7 +170,8 @@ public abstract class ZWidget extends AppWidgetProvider {
                 if (colr == null) continue;
                 rect(cv, x + k * cell, y + r * cell, x + (k + 1) * cell, y + (r + 1) * cell, colr);
             }
-        float g = s.open <= 1 ? 0 : s.open < 5 ? .5f : 1f;
+        int total = s.open + s.done;
+        float g = total == 0 ? 0 : Math.round(s.done * 2f / total) / 2f;
         for (int[] e : s.eyes) {
             float ph = s.ph + g, pw = s.pw + g, yy = Math.min(e[1] + 1, 9 - ph);
             rect(cv, x + (e[0] - g / 2) * cell, y + (yy - g / 2) * cell, x + (e[0] - g / 2 + pw) * cell, y + (yy - g / 2 + ph) * cell, s.pupil);
@@ -189,7 +192,7 @@ public abstract class ZWidget extends AppWidgetProvider {
         float w = DW[kind], h = DH[kind];
         switch (kind) {
             case 0: { // A · 2×1: eye + count, the count centred on the height; two-digit counts get a size smaller
-                frame(cv, w, h, GOLD);
+                frame(cv, w, h, s.body);
                 eye(cv, 18, (h - 45) / 2f, 55, s);
                 float n = L <= 3 ? 30 : L == 4 ? 24 : 20, l = L <= 3 ? 13 : L == 4 ? 12 : 11, block = n * .8f + 6 + l * .8f, top = (h - block) / 2f;
                 cv.drawText(big, 87, top + n * .8f, text(n, NUM, true, Paint.Align.LEFT));
@@ -209,7 +212,7 @@ public abstract class ZWidget extends AppWidgetProvider {
                 break;
             }
             case 2: { // B · 2×2: big eye, count, beads
-                frame(cv, w, h, GOLD);
+                frame(cv, w, h, s.body);
                 eye(cv, (w - 88) / 2f, 22, 88, s);
                 Paint pn = text(24, NUM, true, Paint.Align.LEFT), pl = text(13, DIM, false, Paint.Align.LEFT);
                 String lab = all ? "всё" : "сделано";
@@ -226,7 +229,7 @@ public abstract class ZWidget extends AppWidgetProvider {
                 break;
             }
             case 3: { // C · 4×1: eye, caption + count, progress bar
-                frame(cv, w, h, GOLD);
+                frame(cv, w, h, s.body);
                 eye(cv, 18, (h - 45) / 2f, 55, s);
                 float x0 = 87, x1 = w - 18;
                 cv.drawText(s.empty ? "открой задачник" : all ? "всё сделано" : "сделано за день", x0, 36, text(15, INK, false, Paint.Align.LEFT));
@@ -237,7 +240,7 @@ public abstract class ZWidget extends AppWidgetProvider {
                 break;
             }
             default: { // D · 1×1: eye + badge
-                frame(cv, w, h, GOLD);
+                frame(cv, w, h, s.body);
                 eye(cv, (w - 46) / 2f, (h - 38) / 2f + 2, 46, s);
                 String t = s.empty ? "?" : all ? "✓" : big;
                 Paint pt = text(12, Color.WHITE, true, Paint.Align.CENTER);

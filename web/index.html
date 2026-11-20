@@ -602,7 +602,7 @@ function stamp(){const now=Math.max(Date.now(),(S.hlc||0)+1),seen=new Set();let 
   for(const[id,ts]of Object.entries(S.gone))if(now-ts>30*864e5)delete S.gone[id];
   const m=JSON.stringify(metaOf());if(m!==lastMeta){S.metaUpd=now;lastMeta=m;used=true}
   const o=orderOf();if(o!==lastOrd){S.orderUpd=now;lastOrd=o;used=true}if(used)S.hlc=now}
-const save=()=>{stamp();localStorage.setItem(KEY,JSON.stringify(S));pushSnapshot();if(typeof SYNC!=="undefined")SYNC.soon();if(typeof GCAL!=="undefined")GCAL.soon()};
+const save=()=>{stamp();localStorage.setItem(KEY,JSON.stringify(S));pushSnapshot();if(typeof widgetPush==="function")widgetPush();if(typeof SYNC!=="undefined")SYNC.soon();if(typeof GCAL!=="undefined")GCAL.soon()};
 function pushSnapshot(){if(!window.dock?.snapshot)return;clearTimeout(pushSnapshot.h);pushSnapshot.h=setTimeout(()=>{
   const snap={updated:new Date().toISOString(),columns:COLS.map(c=>({id:c.id,name:c.name})),
     tasks:S.tasks.map(t=>({id:t.id,column:t.col,text:t.text,done:!!t.done,source:SRC[t.src]||t.src,url:t.url||null,due:t.due||null,external_id:t.ext||null,description:t.description||null,assignees:t.assignees||[],
