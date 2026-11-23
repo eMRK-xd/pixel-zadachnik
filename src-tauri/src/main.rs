@@ -138,6 +138,35 @@ fn snapshot(app: AppHandle, json: String) {
     }
 }
 
+// ---- the board mirrored to a file, so it survives the WebView losing its storage ----
+// Kept outside AppData on purpose: Windows can give a process a private copy of AppData (an app started from a packaged
+// app, e.g. a dev tool, sees "AppData" redirected), so localStorage — and anything under AppData — may differ per launcher.
+// %USERPROFILE%\.zadachnik is the same folder however the app is started.
+fn state_dir() -> Option<std::path::PathBuf> {
+    let d = std::path::Path::new(&std::env::var("USERPROFILE").ok()?).join(".zadachnik");
+    std::fs::create_dir_all(&d).ok()?;
+    Some(d)
+}
+
+/// The page hands over {S, LOCAL} after changes; the previous copy is kept as state.prev.json.
+#[tauri::command]
+fn state_save(json: String) {
+    if json.len() < 20 { return; }
+    if let Some(d) = state_dir() {
+        let tmp = d.join("state.json.tmp");
+        if std::fs::write(&tmp, json).is_ok() {
+            let cur = d.join("state.json");
+            if cur.exists() { let _ = std::fs::copy(&cur, d.join("state.prev.json")); }
+            let _ = std::fs::rename(&tmp, cur);
+        }
+    }
+}
+
+#[tauri::command]
+fn state_load() -> Option<String> {
+    std::fs::read_to_string(state_dir()?.join("state.json")).ok().filter(|s| !s.trim().is_empty())
+}
+
 /// Tasks dropped into inbox.json by the MCP server; claimed by renaming so a concurrent write isn't lost.
 #[tauri::command]
 fn take_inbox(app: AppHandle) -> Option<String> {
@@ -431,7 +460,7 @@ fn main() {
         )
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![hide, toggle_pin, pinned, cursor, copy, llm, open_url, legacy_data, snapshot, take_inbox, fetch_text,
+        .invoke_handler(tauri::generate_handler![hide, toggle_pin, pinned, cursor, copy, llm, open_url, legacy_data, snapshot, state_save, state_load, take_inbox, fetch_text,
             google_connect, google_api, google_status, google_disconnect,
             media_state, media_art, media_control, list_mods, open_mods_dir])
         .on_window_event(|w, ev| {

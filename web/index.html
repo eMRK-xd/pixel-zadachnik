@@ -536,7 +536,7 @@ body.anim-off #sheet .sheet{animation:none}
 if(window.__TAURI__&&!window.dock){const{invoke}=window.__TAURI__.core,{listen}=window.__TAURI__.event;
   window.dock={hide:()=>invoke("hide"),pin:()=>invoke("toggle_pin"),pinned:()=>invoke("pinned"),onPinned:fn=>listen("pinned",e=>fn(e.payload)),
     cursor:()=>invoke("cursor"),copy:t=>invoke("copy",{text:t}),llm:body=>invoke("llm",{body}),legacy:()=>invoke("legacy_data"),
-    snapshot:j=>invoke("snapshot",{json:j}),takeInbox:()=>invoke("take_inbox"),fetchText:u=>invoke("fetch_text",{url:u}),
+    snapshot:j=>invoke("snapshot",{json:j}),stateSave:j=>invoke("state_save",{json:j}),stateLoad:()=>invoke("state_load"),takeInbox:()=>invoke("take_inbox"),fetchText:u=>invoke("fetch_text",{url:u}),
     gconnect:a=>invoke("google_connect",a),gapi:(m,u,b)=>invoke("google_api",{method:m,url:u,body:b}),gstatus:()=>invoke("google_status"),gdisconnect:()=>invoke("google_disconnect")};
   window.open=u=>{invoke("open_url",{url:String(u)});return null}}
 const SPR = {
@@ -572,7 +572,7 @@ const INBOX={...COLS0[0]};Object.defineProperty(INBOX,"name",{get(){try{return S
 let COLS=[INBOX,...COLS0.slice(1)]; // all columns of all master tabs (rebuildCols)
 /* device-local settings that never sync (token, device tag) */
 const LOCAL=JSON.parse(localStorage.getItem("pixel-local")||"{}");LOCAL.dev??=Math.random().toString(36).slice(2,5);
-const saveLocal=()=>localStorage.setItem("pixel-local",JSON.stringify(LOCAL));saveLocal();
+const saveLocal=()=>{localStorage.setItem("pixel-local",JSON.stringify(LOCAL));stateMirror()};saveLocal();
 let uid=1,FROM=null; // FROM: where new tasks are added (pc / phone / web); set once the shell is known, so the demo seed has none
 const T=(col,text,done=false,src="dl",when="до дейлика")=>({id:"t"+(uid++)+(LOCAL.sync?"-"+LOCAL.dev:""),col,text,done,src,when,added:Date.now(),...(FROM&&{from:FROM})});
 const SEED={ // demo data for a fresh install (made up, nothing personal)
@@ -606,6 +606,7 @@ const APP=(!!window.__TAURI__||new URLSearchParams(location.search).has("app"))&
 const MOBILE=!APP&&(matchMedia("(max-width:640px)").matches||new URLSearchParams(location.search).has("mobile"));
 FROM=APP?"pc":window.Capacitor?.isNativePlatform?.()?"phone":"web";
 const KEY="pixel-tracker-v1";
+const HAD_STATE=!!localStorage.getItem(KEY); // false when the WebView came up with empty storage (see the restore at the end)
 /* font choice (this device only, like the theme). Handjet and Andika come from Google Fonts on first use; their @font-face rules are
    renamed and scaled with size-adjust so the layout keeps its proportions */
 const FONTS={pix:{name:"Pixelify"},handjet:{name:"Handjet",q:"Handjet:wght@400;600;700",sz:118},andika:{name:"Andika",q:"Andika:wght@400;700",sz:92,smooth:1}};
@@ -668,7 +669,7 @@ function stamp(){const now=Math.max(Date.now(),(S.hlc||0)+1),seen=new Set();let 
   for(const[id,ts]of Object.entries(S.gone))if(now-ts>30*864e5)delete S.gone[id];
   const m=JSON.stringify(metaOf());if(m!==lastMeta){S.metaUpd=now;lastMeta=m;used=true}
   const o=orderOf();if(o!==lastOrd){S.orderUpd=now;lastOrd=o;used=true}if(used)S.hlc=now}
-const save=()=>{stamp();localStorage.setItem(KEY,JSON.stringify(S));pushSnapshot();if(typeof widgetPush==="function")widgetPush();if(typeof SYNC!=="undefined")SYNC.soon();if(typeof GCAL!=="undefined")GCAL.soon()};
+const save=()=>{stamp();localStorage.setItem(KEY,JSON.stringify(S));pushSnapshot();stateMirror();if(typeof widgetPush==="function")widgetPush();if(typeof SYNC!=="undefined")SYNC.soon();if(typeof GCAL!=="undefined")GCAL.soon()};
 function pushSnapshot(){if(!window.dock?.snapshot)return;clearTimeout(pushSnapshot.h);pushSnapshot.h=setTimeout(()=>{
   const snap={updated:new Date().toISOString(),columns:COLS.map(c=>({id:c.id,name:c.name,board:c===INBOX?null:boardOfCol(c.id)?.name||null})),
     tasks:S.tasks.map(t=>({id:t.id,column:t.col,text:t.text,done:!!t.done,source:SRC[t.src]||t.src,url:t.url||null,due:t.due||null,external_id:t.ext||null,description:t.description||null,assignees:t.assignees||[],
@@ -1930,7 +1931,23 @@ function importInbox(items){
   return n}
 if(APP&&window.dock.takeInbox){pushSnapshot();
   setInterval(async()=>{try{const s=await window.dock.takeInbox();if(s)importInbox(JSON.parse(s))}catch(e){}},2500)}
-if(APP&&window.dock.legacy&&!localStorage.getItem(KEY))window.dock.legacy().then(d=>{if(d){localStorage.setItem(KEY,d);location.reload()}}).catch(()=>{});
+/* ===== desktop: the board is mirrored to %USERPROFILE%.zadachnikstate.json ({S, LOCAL}) =====
+   The WebView's own storage can come up empty: on Windows a process started from a packaged app gets a private copy of AppData,
+   so the same exe may see two different localStorages depending on who launched it. If ours is empty — or lost its sync settings
+   while the file still has them — restore from the file (the current contents are kept under KEY+"-before-restore"). */
+var stateOk=false,stateT=0;
+function stateMirror(){if(!stateOk||!APP||!window.dock?.stateSave)return; // stateOk first: saveLocal() runs before APP existsclearTimeout(stateT);
+  stateT=setTimeout(()=>window.dock.stateSave(JSON.stringify({v:1,at:Date.now(),S,LOCAL})).catch(()=>{}),1200)}
+if(APP&&window.dock?.stateLoad)window.dock.stateLoad().then(j=>{let o=null;try{o=JSON.parse(j||"null")}catch{}
+  const fileOk=!!(o&&o.S&&Array.isArray(o.S.tasks)),lostSync=!LOCAL.sync&&!!o?.LOCAL?.sync;
+  if(fileOk&&(!HAD_STATE||lostSync)&&!sessionStorage.getItem("zRestored")){
+    sessionStorage.setItem("zRestored","1");                       // never loop if storage keeps coming up empty
+    const cur=localStorage.getItem(KEY);if(cur)localStorage.setItem(KEY+"-before-restore",cur);
+    localStorage.setItem(KEY,JSON.stringify(o.S));if(o.LOCAL)localStorage.setItem("pixel-local",JSON.stringify(o.LOCAL));
+    location.reload();return}
+  stateOk=true;stateMirror();
+  if(!HAD_STATE&&window.dock.legacy)window.dock.legacy().then(d=>{if(d){localStorage.setItem(KEY,d);location.reload()}}).catch(()=>{});
+}).catch(()=>{stateOk=true});
 /* pixel icons for the desktop header buttons; X = button colour, o = highlight */
 const ICO={gear:["...XX...",".X.XX.X.","..XXXX..","XXX..XXX","XXX..XXX","..XXXX..",".X.XX.X.","...XX..."],
   pin:["...XXXX...","..XoXXXX..","..XXXXXX..","...XXXX...","...XXXX...","..XXXXXX..",".XXXXXXXX.","....XX....","....XX....","....X....."],
